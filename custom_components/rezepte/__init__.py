@@ -1,10 +1,4 @@
-"""Rezepte – Home Assistant Custom Integration.
-
-Registriert automatisch:
-  - Seitenleisten-Panel (iframe → /local/rezepte/index.html)
-  - Service rezepte.save_recipes zum Speichern der recipes.json
-  - Kopiert Web-Dateien nach /config/www/rezepte/ beim Start
-"""
+"""Rezepte – Home Assistant Custom Integration."""
 from __future__ import annotations
 
 import base64
@@ -13,6 +7,7 @@ import logging
 import shutil
 from pathlib import Path
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.components.frontend import async_register_built_in_panel
 
@@ -22,8 +17,8 @@ DOMAIN = "rezepte"
 RECIPES_FILE = "recipes.json"
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Integration einrichten."""
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Integration über Config Entry einrichten."""
 
     # 1. Web-Dateien nach /config/www/rezepte/ bereitstellen
     await hass.async_add_executor_job(_provision_www, hass)
@@ -64,7 +59,12 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
-# ── Hilfsfunktionen (synchron, laufen im Executor-Thread) ─────────────────────
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Integration entfernen."""
+    hass.services.async_remove(DOMAIN, "save_recipes")
+    _LOGGER.info("Rezepte-Integration entladen.")
+    return True
+
 
 def _provision_www(hass: HomeAssistant) -> None:
     """Web-Dateien aus dem Integrationsverzeichnis nach /config/www/rezepte/ kopieren."""
@@ -76,7 +76,6 @@ def _provision_www(hass: HomeAssistant) -> None:
         if not src_file.is_file():
             continue
         dst_file = dst_dir / src_file.name
-        # Benutzerdaten (recipes.json) nicht überschreiben
         if src_file.name == RECIPES_FILE and dst_file.exists():
             _LOGGER.debug("%s bereits vorhanden – wird nicht überschrieben.", RECIPES_FILE)
             continue

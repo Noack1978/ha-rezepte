@@ -16,44 +16,38 @@ Rezepte hinzufügen, bearbeiten, löschen – mit Kochmodus und Timer.
 
 ## Installation
 
-### Manuell
-
-1. Repository herunterladen
-2. Ordner `custom_components/rezepte/` nach `/config/custom_components/rezepte/` kopieren
-3. Home Assistant neu starten
-
-### Via HACS
+### Via HACS (empfohlen)
 
 1. HACS → Integrationen → ⋮ → Benutzerdefinierte Repositories
 2. URL dieses Repositories eintragen, Kategorie: **Integration**
 3. Integration **Rezepte** installieren
 4. Home Assistant neu starten
 
+### Manuell
+
+1. Ordner `custom_components/rezepte/` nach `/config/custom_components/rezepte/` kopieren
+2. Home Assistant neu starten
+
 ---
 
 ## Einrichtung
 
-### 1. Integration aktivieren
+1. **Einstellungen → Integrationen → + Hinzufügen → „Rezepte"** suchen
+2. Einmal bestätigen – fertig
 
-In `configuration.yaml` eintragen:
+Die Integration richtet automatisch ein:
+- Web-App unter `/local/rezepte/index.html`
+- Service `rezepte.save_recipes`
+- Eintrag **Rezepte** in der Seitenleiste
 
-```yaml
-rezepte:
-```
-
-HA neu starten. Die Integration:
-- kopiert die Web-App automatisch nach `/config/www/rezepte/`
-- registriert den Service `rezepte.save_recipes`
-- fügt **Rezepte** als Eintrag in der Seitenleiste hinzu
-
-### 2. Long-Lived Access Token erstellen
+### Long-Lived Access Token
 
 **HA → Profil → Sicherheit → Langlebige Zugriffstoken → Token erstellen**
 
 Den Token beim ersten Start der App im Dialog eingeben.  
 Er wird im Browser-Speicher des Geräts gespeichert.
 
-### 3. Dashboard-Karte (optional)
+### Dashboard-Karte (optional)
 
 Die App ist automatisch in der Seitenleiste verfügbar.  
 Alternativ als Dashboard-Karte:
@@ -102,8 +96,12 @@ Rezepte werden in `/config/www/rezepte/recipes.json` gespeichert.
 ```
 custom_components/rezepte/
 ├── __init__.py          # Service-Registrierung, Panel, Datei-Setup
+├── config_flow.py       # Einrichtungs-Dialog
 ├── manifest.json        # Integration-Metadaten
 ├── services.yaml        # Service-Schema
+├── strings.json         # UI-Texte
+├── translations/
+│   └── de.json          # Deutsche Übersetzung
 └── www/
     ├── index.html       # Web-App
     └── recipes.json     # Initiale Beispieldaten
