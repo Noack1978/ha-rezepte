@@ -182,8 +182,10 @@
 <!-- ═══ HOME ═══ -->
 <div id="home-view" class="view active">
   <div class="home-hero" style="position:relative">
-    <h1>🍳 Meine Rezepte</h1><p id="home-sub">Lade…</p>
-    <button onclick="openTokenSetup()" title="Token-Einstellungen" style="background:rgba(255,255,255,.18);border:none;border-radius:50%;width:34px;height:34px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">⚙️</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><h1>🍳 Meine Rezepte</h1><p id="home-sub">Lade…</p></div>
+      <button onclick="openTokenSetup()" title="Token-Einstellungen" style="background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">⚙️</button>
+    </div>
   </div>
   <div class="recipes-grid" id="recipes-grid"></div>
   <button class="fab" onclick="openForm(null)" title="Rezept hinzufügen">+</button>
@@ -309,7 +311,7 @@ const esc = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 /* ══ INIT ══ */
 async function init() {
   try {
-    const r=await fetch('/local/recipes/recipes.json?_='+Date.now());
+    const r=await fetch('/local/rezepte/recipes.json?_='+Date.now());
     if(!r.ok) throw new Error('HTTP '+r.status);
     RECIPES=await r.json();
   } catch(e) {
