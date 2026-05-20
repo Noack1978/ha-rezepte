@@ -211,6 +211,14 @@
     .btn-imp:hover{background:var(--accent2)}
     .btn-imp:disabled{opacity:.5;pointer-events:none}
     .btn-imp.sec{background:var(--text2)}
+
+    /* ── Sort / Group ── */
+    .sort-bar{display:flex;gap:8px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
+    .sort-btn{background:var(--bg2);border:1.5px solid var(--border);border-radius:20px;padding:5px 14px;font-size:.82rem;font-weight:500;font-family:'Source Sans 3',sans-serif;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+    .sort-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .cat-header{grid-column:1/-1;font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--accent2);padding:10px 4px 6px;border-bottom:2px solid var(--border);margin-bottom:2px}
+    .cat-header:first-child{padding-top:2px}
   </style>
 </head>
 <body>
@@ -225,6 +233,10 @@
         <button onclick="openTokenSetup()" title="Token-Einstellungen" style="background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚙️</button>
       </div>
     </div>
+  </div>
+  <div class="sort-bar" id="sort-bar" style="display:none">
+    <button id="btn-sort" class="sort-btn" onclick="toggleSort()" title="Alphabetisch sortieren">A–Z</button>
+    <button id="btn-group" class="sort-btn" onclick="toggleGroup()" title="Nach Kategorie gruppieren">⊞ Kategorien</button>
   </div>
   <div class="recipes-grid" id="recipes-grid"></div>
   <button class="fab" onclick="openForm(null)" title="Rezept hinzufügen">+</button>
@@ -429,23 +441,65 @@ function showView(n) {
 }
 
 /* ══ HOME ══ */
+let _sortAZ=false, _groupCat=false;
+
+function toggleSort(){
+  _sortAZ=!_sortAZ;
+  document.getElementById('btn-sort').classList.toggle('active',_sortAZ);
+  renderHome();
+}
+function toggleGroup(){
+  _groupCat=!_groupCat;
+  document.getElementById('btn-group').classList.toggle('active',_groupCat);
+  renderHome();
+}
+
+function _recipeCard(r){
+  return `<div class="recipe-card" onclick="openRecipe(${r.id})">
+    <span class="recipe-card-emoji">${esc(r.emoji)}</span>
+    <h2>${esc(r.title)}</h2>
+    ${r.subtitle?`<div class="subcat">${esc(r.subtitle)}</div>`:''}
+    <p>${esc(r.description)}</p>
+    <div class="recipe-meta">
+      ${r.category?`<span class="tag">${esc(r.category)}</span>`:''}
+      <span class="tag">${r.ingredients.length} Zutaten</span>
+      <span class="tag">${r.steps.length} Schritte</span>
+    </div>
+  </div>`;
+}
+
 function renderHome() {
   const n=RECIPES.length;
   document.getElementById('home-sub').textContent=n+' Rezept'+(n!==1?'e':'');
-  document.getElementById('recipes-grid').innerHTML=n
-    ?RECIPES.map(r=>`
-      <div class="recipe-card" onclick="openRecipe(${r.id})">
-        <span class="recipe-card-emoji">${esc(r.emoji)}</span>
-        <h2>${esc(r.title)}</h2>
-        ${r.subtitle?`<div class="subcat">${esc(r.subtitle)}</div>`:''}
-        <p>${esc(r.description)}</p>
-        <div class="recipe-meta">
-          ${r.category?`<span class="tag">${esc(r.category)}</span>`:''}
-          <span class="tag">${r.ingredients.length} Zutaten</span>
-          <span class="tag">${r.steps.length} Schritte</span>
-        </div>
-      </div>`).join('')
-    :`<div class="empty-state"><div class="big">🍳</div><p>Noch keine Rezepte.<br>Tippe <strong>+</strong> um zu beginnen.</p></div>`;
+  document.getElementById('sort-bar').style.display=n?'flex':'none';
+
+  if(!n){
+    document.getElementById('recipes-grid').innerHTML=
+      '<div class="empty-state"><div class="big">🍳</div><p>Noch keine Rezepte.<br>Tippe <strong>+</strong> um zu beginnen.</p></div>';
+    return;
+  }
+
+  let list=[...RECIPES];
+  if(_sortAZ) list.sort((a,b)=>(a.title||'').localeCompare(b.title||'','de'));
+
+  let out='';
+  if(_groupCat){
+    const groups={};
+    list.forEach(r=>{
+      const cat=(r.category||'').trim()||'Ohne Kategorie';
+      if(!groups[cat]) groups[cat]=[];
+      groups[cat].push(r);
+    });
+    Object.entries(groups)
+      .sort(([a],[b])=>a.localeCompare(b,'de'))
+      .forEach(([cat,recipes])=>{
+        out+=`<div class="cat-header">${esc(cat)}</div>`;
+        out+=recipes.map(_recipeCard).join('');
+      });
+  } else {
+    out=list.map(_recipeCard).join('');
+  }
+  document.getElementById('recipes-grid').innerHTML=out;
 }
 
 /* ══ DETAIL ══ */
