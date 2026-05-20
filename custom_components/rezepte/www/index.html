@@ -740,7 +740,7 @@ function impOpen(){
   document.getElementById('imp-url').value='';
   document.getElementById('imp-img-preview').style.display='none';
   document.getElementById('imp-file-label').textContent='Datei auswählen oder hier ablegen';
-  document.getElementById('imp-file-input').value='';
+  try{document.getElementById('imp-file-input').value='';}catch(e){}
   impSetSt('input');
   document.getElementById('imp-modal').classList.add('open');
 }
@@ -758,11 +758,21 @@ function impTab(idx){
 function impFileSelected(input){
   const file=input.files[0]; if(!file) return;
   document.getElementById('imp-file-label').textContent=file.name;
-  if(file.type.startsWith('image/')){
+  const nm=file.name.toLowerCase();
+  const isImg=file.type.startsWith('image/')||/\.(jpg|jpeg|png|webp|bmp|heic|heif)$/.test(nm);
+  const isPdf=/\.pdf$/i.test(nm)||file.type==='application/pdf';
+  if(isPdf){
+    showToast('PDF: bitte Text-Tab nutzen und Inhalt einkopieren','err');
+    document.getElementById('imp-file-input').value='';
+    document.getElementById('imp-file-label').textContent='Datei auswählen oder hier ablegen';
+    return;
+  }
+  if(isImg){
+    const mime=file.type||'image/jpeg';
     const rdr=new FileReader();
     rdr.onload=e=>{
       const b64=e.target.result.split(',')[1];
-      _impFile={type:'image',content:b64,mimeType:file.type};
+      _impFile={type:'image',content:b64,mimeType:mime};
       const p=document.getElementById('imp-img-preview');p.src=e.target.result;p.style.display='block';
     };rdr.readAsDataURL(file);
   } else {
