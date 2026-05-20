@@ -221,7 +221,7 @@
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div><h1>🍳 Meine Rezepte</h1><p id="home-sub">Lade…</p></div>
       <div style="display:flex;gap:7px;align-items:flex-start;margin-top:2px">
-        <button id="imp-open-btn" onclick="impOpen()" title="Rezept importieren" style="display:none;background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0">📋</button>
+        <button id="imp-open-btn" onclick="impOpen()" title="Rezept importieren" style="display:flex;background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0">📋</button>
         <button onclick="openTokenSetup()" title="Token-Einstellungen" style="background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚙️</button>
       </div>
     </div>
@@ -406,7 +406,6 @@ async function init() {
     showToast('⚠️ recipes.json nicht gefunden – Datei anlegen!','err');
   }
   renderHome();
-  checkImportServices();
 }
 
 /* ══ SAVE ══ */
@@ -730,16 +729,6 @@ if (!HA_TOKEN) {
 
 <script>
 /* ══ IMPORT (aktiv wenn ha-rezepte-import installiert ist) ══ */
-async function checkImportServices() {
-  if (!HA_TOKEN) return;
-  try {
-    const r = await fetch(HA_URL+'/api/services',{headers:{'Authorization':'Bearer '+HA_TOKEN}});
-    if (!r.ok) return;
-    const svcs = await r.json();
-    if (Array.isArray(svcs) && svcs.some(s=>s.domain==='rezepte_import')) {
-      const b=document.getElementById('imp-open-btn');
-      if (b) b.style.display='flex';
-    }
   } catch(e){}
 }
 
@@ -825,7 +814,7 @@ async function impAnalyze(){
       headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
-    if(!resp.ok) throw new Error('HA HTTP '+resp.status);
+    if(!resp.ok) throw new Error('HA HTTP '+resp.status+' – Ist ha-rezepte-import installiert und eingerichtet?');
     const res=await impPoll(startTs);
     if(res.status!=='ok') throw new Error(res.error||'Unbekannter Fehler');
     _impRecipe=res.recipe; _impRecipe.id=Date.now();
@@ -925,7 +914,7 @@ function saveToken(){
   if(!t){showToast('Bitte einen Token eingeben','err');return;}
   HA_TOKEN=t; localStorage.setItem('ha_token',t);
   closeTokenSetup(); showToast('✓ Token gespeichert','ok');
-  if(!RECIPES.length) init(); else checkImportServices();
+  if(!RECIPES.length) init();
 }
 </script>
 
