@@ -1,0 +1,13 @@
+save_recipes:
+  name: Rezepte speichern
+  description: >
+    Speichert die Rezeptliste als JSON-Datei nach /config/www/rezepte/recipes.json.
+    Wird intern von der Web-App aufgerufen – kein manueller Aufruf nötig.
+  fields:
+    encoded:
+      name: Kodierte Rezeptdaten
+      description: Base64-kodiertes UTF-8-JSON-Array aller Rezepte.
+      required: true
+      example: "W3siaWQiOiAxfV0="
+      selector:
+        text:
