@@ -53,7 +53,7 @@ Die App ist automatisch in der Seitenleiste verfügbar.
 Alternativ als Dashboard-Karte:
 
 ```yaml
-type: iframe
+type: webpage
 url: /local/rezepte/index.html
 aspect_ratio: "16:9"
 ```
