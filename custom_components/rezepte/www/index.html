@@ -175,6 +175,42 @@
     ::-webkit-scrollbar{width:5px}
     ::-webkit-scrollbar-track{background:transparent}
     ::-webkit-scrollbar-thumb{background:rgba(180,130,100,.25);border-radius:3px}
+
+    /* ── Import ── */
+    .imp-modal{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+    .imp-modal.open{transform:translateY(0)}
+    .imp-tabs{display:flex;gap:3px;background:var(--bg2);border-radius:var(--r-sm);padding:4px;margin-bottom:4px}
+    .imp-tab{flex:1;background:none;border:none;border-radius:7px;padding:8px 4px;font-size:.8rem;font-family:'Source Sans 3',sans-serif;color:var(--text3);cursor:pointer;font-weight:500;transition:background .15s}
+    .imp-tab.active{background:var(--card);color:var(--accent);font-weight:600;box-shadow:var(--shadow)}
+    .imp-panel{display:none}
+    .imp-panel.active{display:flex;flex-direction:column;gap:12px}
+    .imp-textarea{width:100%;min-height:200px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;font-size:.88rem;font-family:'Source Sans 3',sans-serif;color:var(--text);resize:vertical;line-height:1.55}
+    .imp-textarea:focus{outline:none;border-color:var(--accent)}
+    .imp-hint{font-size:.8rem;color:var(--text3);line-height:1.45}
+    .imp-upload-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--border);border-radius:var(--r-sm);padding:30px 20px;cursor:pointer;color:var(--text3);font-size:.88rem;text-align:center;transition:border-color .15s}
+    .imp-upload-label:hover{border-color:var(--accent);color:var(--accent)}
+    .imp-upload-icon{font-size:2.2rem}
+    .imp-preview-img{max-height:180px;border-radius:var(--r-sm);object-fit:contain;align-self:center}
+    .imp-url-input{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;font-size:.91rem;font-family:'Source Sans 3',sans-serif;color:var(--text)}
+    .imp-url-input:focus{outline:none;border-color:var(--accent)}
+    .imp-spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:imp-spin .8s linear infinite;margin:16px auto}
+    @keyframes imp-spin{to{transform:rotate(360deg)}}
+    .imp-load-wrap{text-align:center;padding:20px 0}
+    .imp-load-wrap p{margin-top:13px;font-size:.88rem;color:var(--text3)}
+    .imp-result-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);padding:18px;display:flex;gap:14px;align-items:flex-start}
+    .imp-result-emoji{font-size:2.3rem;flex-shrink:0}
+    .imp-result-info h3{font-family:'Playfair Display',serif;font-size:1.05rem;margin-bottom:3px}
+    .imp-result-sub{font-size:.76rem;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+    .imp-result-meta{font-size:.8rem;color:var(--text3)}
+    .imp-result-desc{font-size:.82rem;color:var(--text2);margin-top:5px;line-height:1.45}
+    .imp-error-box{background:#fee;border:1px solid #f5c5c5;border-radius:var(--r-sm);padding:14px;font-size:.84rem;color:#7a1f1f;line-height:1.5}
+    .istat{display:none}
+    .istat.on{display:block}
+    .btn-imp-back{background:var(--bg2);border:none;border-radius:var(--r-sm);padding:10px 20px;font-size:.9rem;font-family:'Source Sans 3',sans-serif;color:var(--text2);cursor:pointer;flex-shrink:0}
+    .btn-imp{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 20px;font-size:.9rem;font-weight:600;font-family:'Source Sans 3',sans-serif;cursor:pointer;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s}
+    .btn-imp:hover{background:var(--accent2)}
+    .btn-imp:disabled{opacity:.5;pointer-events:none}
+    .btn-imp.sec{background:var(--text2)}
   </style>
 </head>
 <body>
@@ -184,7 +220,10 @@
   <div class="home-hero" style="position:relative">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div><h1>🍳 Meine Rezepte</h1><p id="home-sub">Lade…</p></div>
-      <button onclick="openTokenSetup()" title="Token-Einstellungen" style="background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">⚙️</button>
+      <div style="display:flex;gap:7px;align-items:flex-start;margin-top:2px">
+        <button id="imp-open-btn" onclick="impOpen()" title="Rezept importieren" style="display:none;background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0">📋</button>
+        <button onclick="openTokenSetup()" title="Token-Einstellungen" style="background:rgba(255,255,255,.18);border:none;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚙️</button>
+      </div>
     </div>
   </div>
   <div class="recipes-grid" id="recipes-grid"></div>
@@ -282,6 +321,54 @@
   </div>
 </div>
 
+
+<!-- ═══ IMPORT MODAL ═══ -->
+<div id="imp-modal" class="imp-modal">
+  <div class="form-header">
+    <button class="btn-icon" onclick="impClose()">✕</button>
+    <h2>Rezept importieren</h2>
+  </div>
+  <div class="form-body">
+    <div class="imp-tabs">
+      <button class="imp-tab active" onclick="impTab(0)">✏️ Text</button>
+      <button class="imp-tab"        onclick="impTab(1)">📁 Datei</button>
+      <button class="imp-tab"        onclick="impTab(2)">🔗 Link</button>
+    </div>
+    <div id="imp-input" class="istat on">
+      <div id="imp-panel-0" class="imp-panel active">
+        <p class="imp-hint">Rezepttext einfügen – beliebiges Format (Fließtext, strukturiert, aus Webseite kopiert …).</p>
+        <textarea id="imp-textarea" class="imp-textarea" placeholder="Rezepttext hier einfügen …"></textarea>
+      </div>
+      <div id="imp-panel-1" class="imp-panel">
+        <p class="imp-hint">TXT-Dateien als Text, Bilder (JPG, PNG, WEBP) via LLM Vision.</p>
+        <label class="imp-upload-label" for="imp-file-input">
+          <span class="imp-upload-icon">📂</span>
+          <span id="imp-file-label">Datei auswählen oder hier ablegen</span>
+        </label>
+        <input id="imp-file-input" type="file" accept=".txt,image/jpeg,image/png,image/webp" style="display:none" onchange="impFileSelected(this)">
+        <img id="imp-img-preview" class="imp-preview-img" style="display:none" alt="Vorschau">
+      </div>
+      <div id="imp-panel-2" class="imp-panel">
+        <p class="imp-hint">URL einer Rezept-Webseite. HA ruft sie serverseitig ab (kein CORS-Problem).</p>
+        <input id="imp-url" type="url" class="imp-url-input" placeholder="https://www.beispiel.de/rezept/...">
+      </div>
+    </div>
+    <div id="imp-loading" class="istat">
+      <div class="imp-load-wrap">
+        <div class="imp-spinner"></div>
+        <p id="imp-loading-msg">Analysiere …</p>
+      </div>
+    </div>
+    <div id="imp-result" class="istat">
+      <p style="font-size:.83rem;color:var(--text2);margin-bottom:10px">Erkanntes Rezept:</p>
+      <div class="imp-result-card" id="imp-result-card"></div>
+    </div>
+    <div id="imp-error" class="istat">
+      <div class="imp-error-box" id="imp-error-msg"></div>
+    </div>
+  </div>
+  <div class="form-footer" id="imp-footer"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
@@ -319,6 +406,7 @@ async function init() {
     showToast('⚠️ recipes.json nicht gefunden – Datei anlegen!','err');
   }
   renderHome();
+  checkImportServices();
 }
 
 /* ══ SAVE ══ */
@@ -640,6 +728,173 @@ if (!HA_TOKEN) {
 }
 </script>
 
+<script>
+/* ══ IMPORT (aktiv wenn ha-rezepte-import installiert ist) ══ */
+async function checkImportServices() {
+  if (!HA_TOKEN) return;
+  try {
+    const r = await fetch(HA_URL+'/api/services',{headers:{'Authorization':'Bearer '+HA_TOKEN}});
+    if (!r.ok) return;
+    const svcs = await r.json();
+    if (Array.isArray(svcs) && svcs.some(s=>s.domain==='rezepte_import')) {
+      const b=document.getElementById('imp-open-btn');
+      if (b) b.style.display='flex';
+    }
+  } catch(e){}
+}
+
+let _impTab=0, _impFile=null, _impRecipe=null;
+
+function impOpen(){
+  _impRecipe=null;_impFile=null;_impTab=0;
+  document.querySelectorAll('.imp-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.querySelectorAll('.imp-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
+  document.getElementById('imp-textarea').value='';
+  document.getElementById('imp-url').value='';
+  document.getElementById('imp-img-preview').style.display='none';
+  document.getElementById('imp-file-label').textContent='Datei auswählen oder hier ablegen';
+  document.getElementById('imp-file-input').value='';
+  impSetSt('input');
+  document.getElementById('imp-modal').classList.add('open');
+}
+function impClose(){document.getElementById('imp-modal').classList.remove('open');}
+
+function impTab(idx){
+  _impTab=idx;_impFile=null;
+  document.querySelectorAll('.imp-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.imp-panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+  document.getElementById('imp-img-preview').style.display='none';
+  document.getElementById('imp-file-label').textContent='Datei auswählen oder hier ablegen';
+  impSetSt('input');
+}
+
+function impFileSelected(input){
+  const file=input.files[0]; if(!file) return;
+  document.getElementById('imp-file-label').textContent=file.name;
+  if(file.type.startsWith('image/')){
+    const rdr=new FileReader();
+    rdr.onload=e=>{
+      const b64=e.target.result.split(',')[1];
+      _impFile={type:'image',content:b64,mimeType:file.type};
+      const p=document.getElementById('imp-img-preview');p.src=e.target.result;p.style.display='block';
+    };rdr.readAsDataURL(file);
+  } else {
+    const rdr=new FileReader();
+    rdr.onload=e=>{_impFile={type:'text',content:e.target.result};};
+    rdr.readAsText(file);
+  }
+}
+
+function impSetSt(st){
+  ['input','loading','result','error'].forEach(s=>document.getElementById('imp-'+s).classList.toggle('on',s===st));
+  const f=document.getElementById('imp-footer');
+  if(st==='input'){
+    f.innerHTML='<button class="btn-imp-back" onclick="impClose()">Abbrechen</button>'+
+      '<button class="btn-imp" onclick="impAnalyze()">🔍 Analysieren</button>';
+  } else if(st==='result'){
+    f.innerHTML='<button class="btn-imp-back" onclick="impSetSt('input')">← Zurück</button>'+
+      '<button class="btn-imp sec" onclick="impEdit()">✏️ Bearbeiten</button>'+
+      '<button class="btn-imp" onclick="impSave()">💾 Importieren</button>';
+  } else if(st==='error'){
+    f.innerHTML='<button class="btn-imp-back" onclick="impSetSt('input')">← Zurück</button>'+
+      '<button class="btn-imp" onclick="impAnalyze()">↺ Erneut</button>';
+  } else { f.innerHTML=''; }
+}
+
+async function impAnalyze(){
+  const startTs=Math.floor(Date.now()/1000);
+  let svc,payload,msg;
+  if(_impTab===0){
+    const t=document.getElementById('imp-textarea').value.trim();
+    if(!t){showToast('Bitte Text einfügen','err');return;}
+    svc='parse_text';payload={text:t};msg='Text wird analysiert …';
+  } else if(_impTab===1){
+    if(!_impFile){showToast('Bitte Datei auswählen','err');return;}
+    if(_impFile.type==='text'){svc='parse_text';payload={text:_impFile.content};msg='Dateiinhalt wird analysiert …';}
+    else{svc='parse_image';payload={image_data:_impFile.content,mime_type:_impFile.mimeType};msg='Bild wird analysiert …';}
+  } else {
+    const u=document.getElementById('imp-url').value.trim();
+    if(!u){showToast('Bitte URL eingeben','err');return;}
+    svc='parse_url';payload={url:u};msg='Webseite wird abgerufen …';
+  }
+  document.getElementById('imp-loading-msg').textContent=msg;
+  impSetSt('loading');
+  try {
+    const resp=await fetch(HA_URL+'/api/services/rezepte_import/'+svc,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!resp.ok) throw new Error('HA HTTP '+resp.status);
+    const res=await impPoll(startTs);
+    if(res.status!=='ok') throw new Error(res.error||'Unbekannter Fehler');
+    _impRecipe=res.recipe; _impRecipe.id=Date.now();
+    const meta=[(res.recipe.ingredients?.length||0)+' Zutaten',(res.recipe.steps?.length||0)+' Schritte',res.recipe.category].filter(Boolean).join(' · ');
+    document.getElementById('imp-result-card').innerHTML=
+      '<div class="imp-result-emoji">'+esc(_impRecipe.emoji||'🍳')+'</div>'+
+      '<div class="imp-result-info"><h3>'+esc(_impRecipe.title)+'</h3>'+
+      (_impRecipe.subtitle?'<div class="imp-result-sub">'+esc(_impRecipe.subtitle)+'</div>':'')+
+      '<div class="imp-result-meta">'+esc(meta)+'</div>'+
+      (_impRecipe.description?'<div class="imp-result-desc">'+esc(_impRecipe.description)+'</div>':'')+
+      '</div>';
+    impSetSt('result');
+  } catch(e){
+    document.getElementById('imp-error-msg').textContent='Fehler: '+e.message;
+    impSetSt('error');
+  }
+}
+
+async function impPoll(startTs){
+  const dl=Date.now()+45000;
+  while(Date.now()<dl){
+    await new Promise(r=>setTimeout(r,1500));
+    try{
+      const r=await fetch('/local/rezepte/import_result.json?_='+Date.now());
+      if(!r.ok) continue;
+      const d=await r.json();
+      if(d.ts>=startTs) return d;
+    }catch(e){}
+  }
+  throw new Error('Timeout – kein Ergebnis nach 45 Sekunden');
+}
+
+async function impSave(){
+  if(!_impRecipe) return;
+  RECIPES.push(_impRecipe);
+  const btn=document.querySelector('#imp-footer .btn-imp:last-child');
+  if(btn){btn.disabled=true;btn.textContent='Speichern …';}
+  try{
+    await saveToHA();showToast('✓ Rezept importiert','ok');
+    impClose();renderHome();showView('home');
+  }catch(e){
+    RECIPES=RECIPES.filter(r=>r.id!==_impRecipe.id);
+    showToast('Fehler: '+e.message,'err');
+    if(btn){btn.disabled=false;btn.textContent='Importieren';}
+  }
+}
+
+function impEdit(){
+  if(!_impRecipe) return;
+  const r=_impRecipe; impClose();
+  fEditId=null;fStep=0;fEmoji=r.emoji||'🍳';
+  fIngs=(r.ingredients||[]).map(x=>({...x}));
+  fSteps=(r.steps||[]).map(x=>({...x}));
+  fNotes=[...(r.notes||[''])];
+  document.getElementById('f-title').value=r.title||'';
+  document.getElementById('f-subtitle').value=r.subtitle||'';
+  document.getElementById('f-cat').value=r.category||'';
+  document.getElementById('f-servings').value=r.baseServings||4;
+  document.getElementById('f-slabel').value=r.servingLabel||'Portionen';
+  document.getElementById('f-desc').value=r.description||'';
+  document.getElementById('emoji-box').textContent=fEmoji;
+  document.getElementById('form-heading').textContent='Rezept bearbeiten';
+  document.getElementById('emoji-picker-panel').style.display='none';
+  document.getElementById('emoji-box').classList.remove('open');
+  showFStep();
+  document.getElementById('form-modal').classList.add('open');
+}
+</script>
+
 <!-- ═══ TOKEN SETUP OVERLAY ═══ -->
 <div id="token-overlay" style="position:fixed;inset:0;background:rgba(44,24,16,.82);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
   <div style="background:var(--card);border-radius:var(--r);padding:28px 24px;max-width:400px;width:92%;box-shadow:var(--shadow-lg)">
@@ -670,14 +925,10 @@ function saveToken(){
   if(!t){showToast('Bitte einen Token eingeben','err');return;}
   HA_TOKEN=t; localStorage.setItem('ha_token',t);
   closeTokenSetup(); showToast('✓ Token gespeichert','ok');
-  if(!RECIPES.length) init();
+  if(!RECIPES.length) init(); else checkImportServices();
 }
 </script>
 
 
-<script>
-/* Optionale Import-Erweiterung (ha-rezepte-import) */
-(function(){var s=document.createElement('script');s.src='/local/rezepte/import.js?_='+Date.now();s.onerror=function(){};document.body.appendChild(s);})();
-</script>
 </body>
 </html>
