@@ -729,8 +729,6 @@ if (!HA_TOKEN) {
 
 <script>
 /* ══ IMPORT (aktiv wenn ha-rezepte-import installiert ist) ══ */
-  } catch(e){}
-}
 
 let _impTab=0, _impFile=null, _impRecipe=null;
 
@@ -774,6 +772,7 @@ function impFileSelected(input){
   }
 }
 
+function impGoBack(){impSetSt("input");}
 function impSetSt(st){
   ['input','loading','result','error'].forEach(s=>document.getElementById('imp-'+s).classList.toggle('on',s===st));
   const f=document.getElementById('imp-footer');
@@ -781,11 +780,11 @@ function impSetSt(st){
     f.innerHTML='<button class="btn-imp-back" onclick="impClose()">Abbrechen</button>'+
       '<button class="btn-imp" onclick="impAnalyze()">🔍 Analysieren</button>';
   } else if(st==='result'){
-    f.innerHTML='<button class="btn-imp-back" onclick="impSetSt('input')">← Zurück</button>'+
+    f.innerHTML='<button class="btn-imp-back" onclick="impGoBack()">← Zurück</button>'+
       '<button class="btn-imp sec" onclick="impEdit()">✏️ Bearbeiten</button>'+
       '<button class="btn-imp" onclick="impSave()">💾 Importieren</button>';
   } else if(st==='error'){
-    f.innerHTML='<button class="btn-imp-back" onclick="impSetSt('input')">← Zurück</button>'+
+    f.innerHTML='<button class="btn-imp-back" onclick="impGoBack()">← Zurück</button>'+
       '<button class="btn-imp" onclick="impAnalyze()">↺ Erneut</button>';
   } else { f.innerHTML=''; }
 }
