@@ -1,13 +1,5 @@
 {
-  "config": {
-    "step": {
-      "user": {
-        "title": "Rezepte einrichten",
-        "description": "Die Integration richtet automatisch ein:\n- Web-App unter `/local/rezepte/index.html`\n- Service `rezepte.save_recipes`\n- Eintrag in der Seitenleiste\n\nKeine weiteren Einstellungen nötig."
-      }
-    },
-    "abort": {
-      "already_configured": "Rezepte ist bereits eingerichtet."
-    }
-  }
+  "name": "Rezepte",
+  "render_readme": true,
+  "hacs": "1.6.0"
 }
