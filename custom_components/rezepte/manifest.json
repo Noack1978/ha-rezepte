@@ -1,11 +1,17 @@
 {
-  "domain": "rezepte",
-  "name": "Rezepte",
+  "domain": "rezepte_import",
+  "name": "Rezepte Import",
   "version": "1.0.0",
-  "documentation": "https://github.com/DEIN_USERNAME/ha-rezepte",
-  "requirements": [],
-  "dependencies": ["frontend"],
+  "documentation": "https://github.com/DEIN_USERNAME/ha-rezepte-import",
+  "requirements": [
+    "json-repair>=0.29.0",
+    "pypdf>=4.0.0"
+  ],
+  "dependencies": [
+    "frontend",
+    "conversation"
+  ],
   "codeowners": [],
-  "iot_class": "local_push",
+  "iot_class": "cloud_polling",
   "config_flow": true
 }
