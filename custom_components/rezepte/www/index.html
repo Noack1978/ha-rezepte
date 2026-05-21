@@ -177,6 +177,10 @@
     ::-webkit-scrollbar-thumb{background:rgba(180,130,100,.25);border-radius:3px}
 
     /* ── Import ── */
+    .imp-prompt-area{width:100%;min-height:260px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;font-size:.82rem;font-family:'Source Sans 3',sans-serif;color:var(--text);resize:vertical;line-height:1.6}
+    .imp-prompt-area:focus{outline:none;border-color:var(--accent)}
+    .imp-prompt-note{font-size:.76rem;color:var(--text3);line-height:1.45;margin-top:4px}
+
     .imp-modal{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
     .imp-modal.open{transform:translateY(0)}
     .imp-tabs{display:flex;gap:3px;background:var(--bg2);border-radius:var(--r-sm);padding:4px;margin-bottom:4px}
@@ -792,6 +796,7 @@ function impOpen(){
   document.querySelectorAll('.imp-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
   document.getElementById('imp-textarea').value='';
   document.getElementById('imp-url').value='';
+  document.getElementById('imp-prompt-area').value=localStorage.getItem('imp_prompt')||'';
   document.getElementById('imp-img-preview').style.display='none';
   document.getElementById('imp-file-label').textContent='Datei auswählen oder hier ablegen';
   try{document.getElementById('imp-file-input').value='';}catch(e){}
@@ -816,9 +821,14 @@ function impFileSelected(input){
   const isImg=file.type.startsWith('image/')||/\.(jpg|jpeg|png|webp|bmp|heic|heif)$/.test(nm);
   const isPdf=/\.pdf$/i.test(nm)||file.type==='application/pdf';
   if(isPdf){
-    showToast('PDF: bitte Text-Tab nutzen und Inhalt einkopieren','err');
-    document.getElementById('imp-file-input').value='';
-    document.getElementById('imp-file-label').textContent='Datei auswählen oder hier ablegen';
+    if(file.size>10*1024*1024){showToast('PDF zu groß (max. 10 MB)','err');return;}
+    const rdr=new FileReader();
+    rdr.onload=e=>{
+      const b64=e.target.result.split(',')[1];
+      _impFile={type:'pdf',content:b64};
+      document.getElementById('imp-img-preview').style.display='none';
+    };
+    rdr.readAsDataURL(file);
     return;
   }
   if(isImg){
@@ -841,8 +851,14 @@ function impSetSt(st){
   ['input','loading','result','error'].forEach(s=>document.getElementById('imp-'+s).classList.toggle('on',s===st));
   const f=document.getElementById('imp-footer');
   if(st==='input'){
-    f.innerHTML='<button class="btn-imp-back" onclick="impClose()">Abbrechen</button>'+
-      '<button class="btn-imp" onclick="impAnalyze()">🔍 Analysieren</button>';
+    if(_activeTab===3){
+      // Prompt-Tab: andere Buttons
+      f.innerHTML='<button class="btn-imp-back" onclick="impPromptReset()">↺ Standard</button>'+
+        '<button class="btn-imp" onclick="impPromptSave()">💾 Speichern</button>';
+    } else {
+      f.innerHTML='<button class="btn-imp-back" onclick="impClose()">Abbrechen</button>'+
+        '<button class="btn-imp" onclick="impAnalyze()">🔍 Analysieren</button>';
+    }
   } else if(st==='result'){
     f.innerHTML='<button class="btn-imp-back" onclick="impGoBack()">← Zurück</button>'+
       '<button class="btn-imp sec" onclick="impEdit()">✏️ Bearbeiten</button>'+
@@ -863,6 +879,7 @@ async function impAnalyze(){
   } else if(_impTab===1){
     if(!_impFile){showToast('Bitte Datei auswählen','err');return;}
     if(_impFile.type==='text'){svc='parse_text';payload={text:_impFile.content};msg='Dateiinhalt wird analysiert …';}
+    else if(_impFile.type==='pdf'){svc='parse_pdf';payload={pdf_data:_impFile.content};msg='PDF wird ausgelesen …';}
     else{svc='parse_image';payload={image_data:_impFile.content,mime_type:_impFile.mimeType};msg='Bild wird analysiert …';}
   } else {
     const u=document.getElementById('imp-url').value.trim();
