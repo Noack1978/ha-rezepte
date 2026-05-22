@@ -219,6 +219,24 @@
     .sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
     .cat-header{grid-column:1/-1;font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--accent2);padding:10px 4px 6px;border-bottom:2px solid var(--border);margin-bottom:2px}
     .cat-header:first-child{padding-top:2px}
+
+    /* ── Timer-Ansage ── */
+    .ta-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:250;display:none}
+    .ta-overlay.open{display:block}
+    .ta-panel{position:fixed;bottom:0;left:0;right:0;background:#1e110b;border-top:1px solid rgba(255,255,255,.12);border-radius:18px 18px 0 0;padding:20px 18px 28px;z-index:251;max-height:72vh;overflow-y:auto;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+    .ta-panel.open{transform:translateY(0)}
+    .ta-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .ta-title{font-family:'Playfair Display',serif;color:#ffd080;font-size:1rem}
+    .ta-close{background:rgba(255,255,255,.08);border:none;color:#fff;border-radius:50%;width:28px;height:28px;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .ta-device{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:.88rem;color:#fff;cursor:pointer}
+    .ta-device:last-child{border-bottom:none}
+    .ta-device-name{flex:1;opacity:.85}
+    .ta-check{width:22px;height:22px;border:2px solid rgba(255,255,255,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;transition:all .15s}
+    .ta-check.on{background:var(--accent);border-color:var(--accent)}
+    .ta-hint{font-size:.76rem;color:rgba(255,255,255,.3);margin-top:14px;line-height:1.45}
+    .btn-timer-cfg{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);border-radius:6px;padding:3px 9px;font-size:.72rem;font-family:'Source Sans 3',sans-serif;cursor:pointer;transition:background .15s}
+    .btn-timer-cfg:hover{background:rgba(255,255,255,.14);color:#fff}
+    .btn-timer-cfg.active{border-color:var(--accent);color:#ffd080}
   </style>
 </head>
 <body>
@@ -402,6 +420,7 @@ const HA_URL = window.location.origin;
 /* ══ STATE ══ */
 let RECIPES=[], curRecipe=null, curServings=4;
 let cookStep=0, timerInterval=null, timerRemaining=0, timerRunning=false;
+  let _curStepText='', _announceDevices=[], _allMediaPlayers=[];
 let fEditId=null, fStep=0, fEmoji='🍳', fIngs=[], fSteps=[], fNotes=[];
 
 /* ══ HELPER ══ */
@@ -410,7 +429,14 @@ const esc = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 /* ══ INIT ══ */
 async function init() {
   try {
-    const r=await fetch('/local/rezepte/recipes.json?_='+Date.now());
+    // Geraete-Konfiguration laden
+  try{
+    const cfgR=await fetch('/local/rezepte/ha_config.json?_='+Date.now());
+    if(cfgR.ok){const cfg=await cfgR.json();
+      _allMediaPlayers=cfg.media_players||[];
+      _announceDevices=[..._allMediaPlayers];}
+  }catch(e){}
+  const r=await fetch('/local/rezepte/recipes.json?_='+Date.now());
     if(!r.ok) throw new Error('HTTP '+r.status);
     RECIPES=await r.json();
   } catch(e) {
@@ -573,9 +599,13 @@ function renderCookStep(){
       </div>`;return;
   }
   const s=r.steps[cookStep];
+  _curStepText=s.text;
   const th=s.timerSec?`
     <div class="cook-timer">
-      <div class="cook-timer-label">Timer</div>
+      <div class="cook-timer-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Timer</span>
+        <button class="btn-timer-cfg ${_announceDevices.length?'active':''}" onclick="openTimerSettings()">📢 ${_announceDevices.length}</button>
+      </div>
       <div class="cook-timer-display" id="t-disp">${fmtTime(s.timerSec)}</div>
       <div class="cook-timer-controls">
         <button class="btn-timer primary" id="t-btn" onclick="toggleTimer(${s.timerSec})">▶ Start</button>
@@ -597,6 +627,57 @@ function nextStep(){stopTimer();cookStep++;renderCookStep();}
 function prevStep(){stopTimer();cookStep=Math.max(0,cookStep-1);renderCookStep();}
 
 /* ══ TIMER ══ */
+/* ══ TIMER-ANSAGE ══ */
+function openTimerSettings(){
+  const el=document.getElementById('ta-devices');
+  if(!_allMediaPlayers.length){
+    el.innerHTML='<p style="color:rgba(255,255,255,.4);font-size:.84rem">Keine Geräte konfiguriert.<br>Bitte in der Integration Standardgeräte wählen.</p>';
+    document.getElementById('ta-hint').textContent='';
+  } else {
+    el.innerHTML=_allMediaPlayers.map(eid=>{
+      const on=_announceDevices.includes(eid);
+      const name=eid.replace(/^media_player\./,'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      return `<div class="ta-device" onclick="toggleDevice('${eid}')">
+        <span class="ta-device-name">${name}</span>
+        <span class="ta-check ${on?'on':''}" id="tac-${eid.replace(/\./g,'-')}">${on?'✓':''}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('ta-hint').textContent=
+      _announceDevices.length?`${_announceDevices.length} Gerät(e) aktiv – Ansage bei Timer-Ende`:'Keine Geräte aktiv – Stille bei Timer-Ende';
+  }
+  document.getElementById('ta-overlay').classList.add('open');
+  document.getElementById('ta-panel').classList.add('open');
+}
+function closeTimerSettings(){
+  document.getElementById('ta-overlay').classList.remove('open');
+  document.getElementById('ta-panel').classList.remove('open');
+}
+function toggleDevice(eid){
+  const idx=_announceDevices.indexOf(eid);
+  if(idx>=0)_announceDevices.splice(idx,1); else _announceDevices.push(eid);
+  const on=_announceDevices.includes(eid);
+  const key='tac-'+eid.replace(/\./g,'-');
+  const el=document.getElementById(key);
+  if(el){el.classList.toggle('on',on);el.textContent=on?'✓':'';}
+  document.getElementById('ta-hint').textContent=
+    _announceDevices.length?`${_announceDevices.length} Gerät(e) aktiv`:'Keine Geräte aktiv – Stille bei Timer-Ende';
+  // Konfigurations-Button im Timer aktualisieren
+  document.querySelectorAll('.btn-timer-cfg').forEach(b=>{
+    b.textContent='📢 '+_announceDevices.length;
+    b.classList.toggle('active',_announceDevices.length>0);
+  });
+}
+async function announceTimerEnd(stepText){
+  if(!_announceDevices.length)return;
+  try{
+    await fetch(HA_URL+'/api/services/rezepte/announce_timer',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({step_name:stepText,entity_ids:_announceDevices})
+    });
+  }catch(e){console.warn('Timer-Ansage fehlgeschlagen:',e);}
+}
+
 function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
 function toggleTimer(def){
   if(timerRunning){clearInterval(timerInterval);timerRunning=false;const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';}
@@ -608,6 +689,7 @@ function toggleTimer(def){
       if(d){if(timerRemaining<=0){d.textContent='✓ Fertig';d.classList.add('done');stopTimer();
         const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';
         if(navigator.vibrate)navigator.vibrate([400,150,400,150,600]);
+        announceTimerEnd(_curStepText);
       }else{d.textContent=fmtTime(timerRemaining);}}
     },1000);
   }
@@ -984,5 +1066,16 @@ function saveToken(){
 </script>
 
 
+
+<!-- Timer-Ansage Overlay -->
+<div id="ta-overlay" class="ta-overlay" onclick="closeTimerSettings()"></div>
+<div id="ta-panel" class="ta-panel">
+  <div class="ta-header">
+    <span class="ta-title">📢 Ansage bei Timer-Ende</span>
+    <button class="ta-close" onclick="closeTimerSettings()">✕</button>
+  </div>
+  <div id="ta-devices"></div>
+  <p class="ta-hint" id="ta-hint"></p>
+</div>
 </body>
 </html>
