@@ -11,3 +11,24 @@ save_recipes:
       example: "W3siaWQiOiAxfV0="
       selector:
         text:
+
+announce_timer:
+  name: Timer-Ende ankündigen
+  description: Gibt eine Ansage auf konfigurierten Alexa-Geräten aus wenn ein Koch-Timer abläuft.
+  fields:
+    step_name:
+      name: Schrittname
+      description: Name des Kochschritts für die Ansage.
+      required: true
+      example: "Sauce köcheln"
+      selector:
+        text:
+    entity_ids:
+      name: Geräte
+      description: Liste der media_player Entitäten für die Ansage. Leer = Standardgeräte aus Konfiguration.
+      required: false
+      example: ["media_player.echo_kueche"]
+      selector:
+        entity:
+          domain: media_player
+          multiple: true
