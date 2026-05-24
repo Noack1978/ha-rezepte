@@ -670,15 +670,16 @@ function toggleDevice(eid){
   });
 }
 async function announceTimerEnd(){
-  // ha_config.json nachladen falls beim Seitenstart noch keine Geräte konfiguriert waren
-  if(!_allMediaPlayers.length){
+  // ha_config.json immer neu laden wenn keine getrennten Listen vorhanden
+  // (passiert wenn Seite vor Rekonfiguration geöffnet war)
+  if(!_alexaPlayers.length&&!_ttsPlayers.length){
     try{
       const cfgR=await fetch('/local/rezepte/ha_config.json?_='+Date.now());
       if(cfgR.ok){const cfg=await cfgR.json();
         _alexaPlayers=cfg.alexa_players||[];
         _ttsPlayers=cfg.tts_players||[];
         _allMediaPlayers=cfg.media_players||[];
-        _announceDevices=[..._allMediaPlayers];}
+        if(!_announceDevices.length)_announceDevices=[..._allMediaPlayers];}
     }catch(e){}
   }
   const actAlexa=_alexaPlayers.filter(e=>_announceDevices.includes(e));
