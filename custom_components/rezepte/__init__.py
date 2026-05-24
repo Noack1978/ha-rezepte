@@ -95,7 +95,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     {
                         "message": message,
                         "target":  entity_ids,
-                        "data":    {"type": "tts"},
+                        "data":    {"type": "announce"},
                     },
                     blocking=False,
                 )
