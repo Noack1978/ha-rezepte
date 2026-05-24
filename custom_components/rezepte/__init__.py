@@ -100,29 +100,48 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Alexa-Geräte: announce
         if a_players:
             try:
+                # notify.alexa_media: target = Liste von entity_ids, type=announce
                 await hass.services.async_call(
                     "notify", "alexa_media",
-                    {"message": message,
-                     "target":  a_players,
-                     "data":    {"type": "announce"}},
-                    blocking=False,
+                    {
+                        "message": message,
+                        "target":  a_players,
+                        "data":    {"type": "announce"},
+                    },
+                    blocking=True,
                 )
+                _LOGGER.info("Alexa-Ansage OK: %s", a_players)
             except Exception as err:
-                _LOGGER.error("Alexa-Ansage fehlgeschlagen (entity_ids=%s): %s", a_players, err)
+                _LOGGER.error("Alexa-Ansage fehlgeschlagen (players=%s): %s", a_players, err)
+                # Fallback: jeden Echo einzeln ansprechen
+                for player in a_players:
+                    svc = "alexa_media_" + player.replace("media_player.", "").replace(".", "_")
+                    try:
+                        await hass.services.async_call(
+                            "notify", svc,
+                            {"message": message, "data": {"type": "announce"}},
+                            blocking=True,
+                        )
+                        _LOGGER.info("Fallback Alexa OK: notify.%s", svc)
+                    except Exception as err2:
+                        _LOGGER.error("Fallback fehlgeschlagen (%s): %s", svc, err2)
 
         # TTS-Geräte: tts.speak
         if t_players:
             try:
                 await hass.services.async_call(
                     "tts", "speak",
-                    {"media_player_entity_id": t_players,
-                     "message": message,
-                     "cache":   False},
+                    {
+                        "media_player_entity_id": t_players,
+                        "message": message,
+                        "cache":   False,
+                    },
                     target={"entity_id": tts_engine},
-                    blocking=False,
+                    blocking=True,
                 )
+                _LOGGER.info("TTS-Ansage OK: %s", t_players)
             except Exception as err:
-                _LOGGER.error("TTS-Ansage fehlgeschlagen (entity_ids=%s): %s", t_players, err)
+                _LOGGER.error("TTS-Ansage fehlgeschlagen (players=%s, engine=%s): %s", t_players, tts_engine, err)
 
     hass.services.async_register(DOMAIN, "save_recipes",   handle_save_recipes)
     hass.services.async_register(DOMAIN, "announce_timer", handle_announce_timer)
