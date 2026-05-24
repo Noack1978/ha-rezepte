@@ -18,6 +18,8 @@ Rezepte hinzufügen, bearbeiten, löschen – mit Kochmodus und Timer.
 
 ### Via HACS (empfohlen)
 
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Noack1978&repository=ha-rezepte&category=integration)
+
 1. HACS → Integrationen → ⋮ → Benutzerdefinierte Repositories
 2. URL dieses Repositories eintragen, Kategorie: **Integration**
 3. Integration **Rezepte** installieren
@@ -36,6 +38,7 @@ Rezepte hinzufügen, bearbeiten, löschen – mit Kochmodus und Timer.
 2. Einmal bestätigen – fertig
 
 Die Integration richtet automatisch ein:
+
 - Web-App unter `/local/rezepte/index.html`
 - Service `rezepte.save_recipes`
 - Eintrag **Rezepte** in der Seitenleiste
