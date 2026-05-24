@@ -1,33 +1,39 @@
 save_recipes:
   name: Rezepte speichern
-  description: >
-    Speichert die Rezeptliste als JSON-Datei nach /config/www/rezepte/recipes.json.
-    Wird intern von der Web-App aufgerufen – kein manueller Aufruf nötig.
+  description: Speichert die Rezeptliste aus der Web-App.
   fields:
     encoded:
-      name: Kodierte Rezeptdaten
-      description: Base64-kodiertes UTF-8-JSON-Array aller Rezepte.
+      name: Kodierte Daten
+      description: Base64-kodierte JSON-Rezeptliste.
       required: true
-      example: "W3siaWQiOiAxfV0="
       selector:
         text:
 
 announce_timer:
   name: Timer-Ende ankündigen
-  description: Gibt eine Ansage auf konfigurierten Alexa-Geräten aus wenn ein Koch-Timer abläuft.
+  description: Gibt eine Ansage auf konfigurierten Lautsprechern aus wenn ein Koch-Timer abläuft.
   fields:
-    step_name:
-      name: Schrittname
-      description: Name des Kochschritts für die Ansage.
+    step_num:
+      name: Schrittnummer
+      description: Nummer des Kochschritts.
       required: true
-      example: "Sauce köcheln"
+      example: 3
       selector:
-        text:
-    entity_ids:
-      name: Geräte
-      description: Liste der media_player Entitäten für die Ansage. Leer = Standardgeräte aus Konfiguration.
+        number:
+          min: 1
+          max: 99
+    alexa_players:
+      name: Alexa-Geräte
+      description: Echo-Geräte für die Ansage via Alexa Announce.
       required: false
-      example: ["media_player.echo_kueche"]
+      selector:
+        entity:
+          domain: media_player
+          multiple: true
+    tts_players:
+      name: TTS-Geräte
+      description: Andere Lautsprecher für die Ansage via HA TTS.
+      required: false
       selector:
         entity:
           domain: media_player
