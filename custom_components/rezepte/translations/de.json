@@ -3,35 +3,34 @@
     "step": {
       "user": {
         "title": "Rezepte einrichten",
-        "description": "Wähle die Alexa-Geräte auf denen Timer-Ansagen ausgegeben werden sollen.",
+        "description": "Lautsprecher für Timer-Ansagen konfigurieren.",
         "data": {
-          "media_players": "Standardgeräte für Timer-Ansagen",
-          "announce_method": "Ankündigungsmethode",
-          "tts_engine": "TTS-Engine (nur bei HA TTS)"
+          "alexa_players": "Alexa Echo-Geräte",
+          "tts_players": "Andere Lautsprecher (Sonos, TV, …)",
+          "tts_engine": "TTS-Engine"
         },
         "data_description": {
-          "media_players": "Diese Geräte werden im Kochmodus vorausgewählt. Alle media_player Entitäten sind wählbar.",
-          "announce_method": "HA TTS funktioniert mit allen Lautsprechern (Sonos, Google Home, Alexa, …). Alexa Media Player nur für Echo-Geräte.",
-          "tts_engine": "Nur bei 'HA TTS' relevant. Standard: tts.google_translate_de_de (in HA eingebaut, kostenlos)."
+          "alexa_players": "Echo-Geräte die bei Timer-Ende per Alexa-Announce angesagt werden.",
+          "tts_players": "Sonos, Fernseher oder andere Lautsprecher – nutzen HA TTS.",
+          "tts_engine": "Nur für 'Andere Lautsprecher'. Standard: tts.google_translate_de_de"
         }
       },
       "reconfigure": {
-        "title": "Standardgeräte ändern",
+        "title": "Lautsprecher anpassen",
         "data": {
-          "media_players": "Standardgeräte für Timer-Ansagen",
-          "announce_method": "Ankündigungsmethode",
-          "tts_engine": "TTS-Engine (nur bei HA TTS)"
+          "alexa_players": "Alexa Echo-Geräte",
+          "tts_players": "Andere Lautsprecher (Sonos, TV, …)",
+          "tts_engine": "TTS-Engine"
         },
         "data_description": {
-          "media_players": "Diese Geräte werden im Kochmodus vorausgewählt. Alle media_player Entitäten sind wählbar.",
-          "announce_method": "HA TTS funktioniert mit allen Lautsprechern (Sonos, Google Home, Alexa, …). Alexa Media Player nur für Echo-Geräte.",
-          "tts_engine": "Nur bei 'HA TTS' relevant. Standard: tts.google_translate_de_de (in HA eingebaut, kostenlos)."
+          "alexa_players": "Echo-Geräte die bei Timer-Ende per Alexa-Announce angesagt werden.",
+          "tts_players": "Sonos, Fernseher oder andere Lautsprecher – nutzen HA TTS.",
+          "tts_engine": "Nur für 'Andere Lautsprecher'. Standard: tts.google_translate_de_de"
         }
       }
     },
     "abort": {
-      "already_configured": "Rezepte ist bereits eingerichtet.",
-      "reconfigure_successful": "Standardgeräte wurden aktualisiert."
+      "reconfigure_successful": "Einstellungen wurden aktualisiert."
     }
   }
 }
