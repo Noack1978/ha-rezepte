@@ -10,6 +10,7 @@ from pathlib import Path
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.components.frontend import async_register_built_in_panel
+from homeassistant.loader import async_get_integration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,6 +18,17 @@ DOMAIN        = "rezepte"
 RECIPES_FILE  = "recipes.json"
 HA_CONFIG_FILE = "ha_config.json"
 
+
+
+def _get_version(init_file: str) -> str:
+    """Versionsnummer aus manifest.json lesen."""
+    import json as _json
+    from pathlib import Path as _Path
+    try:
+        manifest = _Path(init_file).parent / "manifest.json"
+        return _json.loads(manifest.read_text())["version"]
+    except Exception:
+        return "1"
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Integration über Config Entry einrichten."""
@@ -42,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             sidebar_title="Rezepte",
             sidebar_icon="mdi:chef-hat",
             frontend_url_path=DOMAIN,
-            config={"url": f"/local/{DOMAIN}/index.html"},
+            config={"url": f"/local/{DOMAIN}/index.html?v={_get_version(__file__)}"},
             require_admin=False,
         )
     except Exception as err:  # noqa: BLE001

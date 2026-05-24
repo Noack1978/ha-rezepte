@@ -1,7 +1,7 @@
 {
   "domain": "rezepte",
   "name": "Rezepte",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "documentation": "https://github.com/DEIN_USERNAME/ha-rezepte",
   "requirements": [],
   "dependencies": [
