@@ -18,22 +18,30 @@ RECIPES_FILE   = "recipes.json"
 HA_CONFIG_FILE = "ha_config.json"
 
 
-def _get_version(init_file: str) -> str:
-    """Versionsnummer aus manifest.json lesen."""
-    import json as _json
-    from pathlib import Path as _Path
-    try:
-        return _json.loads((_Path(init_file).parent / "manifest.json").read_text())["version"]
-    except Exception:
-        return "1"
+# Version beim Modulimport lesen – verhindert Blocking im Event-Loop
+try:
+    _VERSION = json.loads((Path(__file__).parent / "manifest.json").read_text(encoding="utf-8"))["version"]
+except Exception:
+    _VERSION = "1"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Integration über Config Entry einrichten."""
 
+    # Neue Felder (v1.2.3+)
     alexa_players = entry.data.get("alexa_players", [])
     tts_players   = entry.data.get("tts_players", [])
     tts_engine    = entry.data.get("tts_engine", "tts.google_translate_de_de")
+
+    # Rueckwaertskompatibilitaet mit v1.2.0–v1.2.2
+    if not alexa_players and not tts_players:
+        _old = entry.data.get("media_players", [])
+        _method = entry.data.get("announce_method", "alexa")
+        if _method == "alexa":
+            alexa_players = _old
+        else:
+            tts_players = _old
+
     all_players   = list(dict.fromkeys(alexa_players + tts_players))
 
     # 1. Web-Dateien bereitstellen
@@ -56,11 +64,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             sidebar_title="Rezepte",
             sidebar_icon="mdi:chef-hat",
             frontend_url_path=DOMAIN,
-            config={"url": f"/local/{DOMAIN}/index.html?v={_get_version(__file__)}"},
+            config={"url": f"/local/{DOMAIN}/index.html?v={_VERSION}"},
             require_admin=False,
         )
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Panel konnte nicht registriert werden: %s", err)
+    except Exception:  # noqa: BLE001
+        pass  # Panel bereits registriert (z.B. nach Reload) – kein Fehler
 
     # 4. Service: save_recipes
     async def handle_save_recipes(call: ServiceCall) -> None:
@@ -84,10 +92,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         message   = f"Der Timer aus Schritt {step_num} ist beendet"
 
         if not a_players and not t_players:
-            _LOGGER.debug("Keine Ausgabegeraete – Ansage uebersprungen")
+            _LOGGER.info("Timer-Ansage: Keine Ausgabegeraete konfiguriert")
             return
 
-        _LOGGER.debug("Timer-Ansage: '%s'", message)
+        _LOGGER.info("Timer-Ansage: '%s' → Alexa=%s, TTS=%s", message, a_players, t_players)
 
         # Alexa-Geräte: announce
         if a_players:
@@ -100,7 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     blocking=False,
                 )
             except Exception as err:
-                _LOGGER.warning("Alexa-Ansage fehlgeschlagen: %s", err)
+                _LOGGER.error("Alexa-Ansage fehlgeschlagen (entity_ids=%s): %s", a_players, err)
 
         # TTS-Geräte: tts.speak
         if t_players:
@@ -114,7 +122,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     blocking=False,
                 )
             except Exception as err:
-                _LOGGER.warning("TTS-Ansage fehlgeschlagen: %s", err)
+                _LOGGER.error("TTS-Ansage fehlgeschlagen (entity_ids=%s): %s", t_players, err)
 
     hass.services.async_register(DOMAIN, "save_recipes",   handle_save_recipes)
     hass.services.async_register(DOMAIN, "announce_timer", handle_announce_timer)
