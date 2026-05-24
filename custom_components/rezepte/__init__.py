@@ -10,14 +10,12 @@ from pathlib import Path
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.components.frontend import async_register_built_in_panel
-from homeassistant.loader import async_get_integration
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN        = "rezepte"
-RECIPES_FILE  = "recipes.json"
+DOMAIN         = "rezepte"
+RECIPES_FILE   = "recipes.json"
 HA_CONFIG_FILE = "ha_config.json"
-
 
 
 def _get_version(init_file: str) -> str:
@@ -25,28 +23,32 @@ def _get_version(init_file: str) -> str:
     import json as _json
     from pathlib import Path as _Path
     try:
-        manifest = _Path(init_file).parent / "manifest.json"
-        return _json.loads(manifest.read_text())["version"]
+        return _json.loads((_Path(init_file).parent / "manifest.json").read_text())["version"]
     except Exception:
         return "1"
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Integration über Config Entry einrichten."""
 
-    # 1. Web-Dateien nach /config/www/rezepte/ bereitstellen
+    alexa_players = entry.data.get("alexa_players", [])
+    tts_players   = entry.data.get("tts_players", [])
+    tts_engine    = entry.data.get("tts_engine", "tts.google_translate_de_de")
+    all_players   = list(dict.fromkeys(alexa_players + tts_players))
+
+    # 1. Web-Dateien bereitstellen
     await hass.async_add_executor_job(_provision_www, hass)
 
-    # 2. ha_config.json für Frontend schreiben (Standardgeräte)
-    media_players    = entry.data.get("media_players", [])
-    announce_method  = entry.data.get("announce_method", "tts")
-    tts_engine       = entry.data.get("tts_engine", "tts.google_translate_de_de")
+    # 2. ha_config.json für Frontend schreiben
     cfg_path = Path(hass.config.path("www", DOMAIN, HA_CONFIG_FILE))
     await hass.async_add_executor_job(
         _write_json, cfg_path,
-        {"media_players": media_players, "announce_method": announce_method}
+        {"media_players": all_players,
+         "alexa_players": alexa_players,
+         "tts_players":   tts_players}
     )
 
-    # 3. Seitenleisten-Panel registrieren
+    # 3. Panel registrieren
     try:
         async_register_built_in_panel(
             hass,
@@ -60,7 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Panel konnte nicht registriert werden: %s", err)
 
-    # 4. Service rezepte.save_recipes
+    # 4. Service: save_recipes
     async def handle_save_recipes(call: ServiceCall) -> None:
         encoded = call.data.get("encoded", "")
         missing = len(encoded) % 4
@@ -69,56 +71,54 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             recipes = json.loads(base64.b64decode(encoded).decode("utf-8"))
         except Exception as err:
-            _LOGGER.error("Fehler beim Dekodieren der Rezeptdaten: %s", err)
+            _LOGGER.error("Fehler beim Dekodieren: %s", err)
             return
         target = Path(hass.config.path("www", DOMAIN, RECIPES_FILE))
         await hass.async_add_executor_job(_write_json, target, recipes)
 
-    # 5. Service rezepte.announce_timer
+    # 5. Service: announce_timer
     async def handle_announce_timer(call: ServiceCall) -> None:
-        """Timer-Ende auf Alexa-Geräten ankündigen."""
-        step_name  = call.data.get("step_name", "Timer")
-        entity_ids = call.data.get("entity_ids", media_players)
+        step_num  = call.data.get("step_num", 1)
+        a_players = call.data.get("alexa_players", alexa_players)
+        t_players = call.data.get("tts_players",   tts_players)
+        message   = f"Der Timer aus Schritt {step_num} ist beendet"
 
-        if not entity_ids:
-            _LOGGER.debug("Keine Ausgabegeraete konfiguriert – Ansage uebersprungen")
+        if not a_players and not t_players:
+            _LOGGER.debug("Keine Ausgabegeraete – Ansage uebersprungen")
             return
 
-        message = f"Der Timer für {step_name} ist beendet"
-        _LOGGER.debug("Timer-Ansage: '%s' → %s", message, entity_ids)
+        _LOGGER.debug("Timer-Ansage: '%s'", message)
 
-        try:
-            if announce_method == "alexa":
-                # Alexa Media Player: notify.alexa_media
+        # Alexa-Geräte: announce
+        if a_players:
+            try:
                 await hass.services.async_call(
                     "notify", "alexa_media",
-                    {
-                        "message": message,
-                        "target":  entity_ids,
-                        "data":    {"type": "announce"},
-                    },
+                    {"message": message,
+                     "target":  a_players,
+                     "data":    {"type": "announce"}},
                     blocking=False,
                 )
-            else:
-                # HA TTS: universell fuer alle media_player
+            except Exception as err:
+                _LOGGER.warning("Alexa-Ansage fehlgeschlagen: %s", err)
+
+        # TTS-Geräte: tts.speak
+        if t_players:
+            try:
                 await hass.services.async_call(
                     "tts", "speak",
-                    {
-                        "media_player_entity_id": entity_ids,
-                        "message": message,
-                        "cache":   False,
-                    },
+                    {"media_player_entity_id": t_players,
+                     "message": message,
+                     "cache":   False},
                     target={"entity_id": tts_engine},
                     blocking=False,
                 )
-            _LOGGER.debug("Timer-Ansage (%s): '%s' → %s", announce_method, message, entity_ids)
-        except Exception as err:
-            _LOGGER.warning("Timer-Ansage fehlgeschlagen: %s", err)
+            except Exception as err:
+                _LOGGER.warning("TTS-Ansage fehlgeschlagen: %s", err)
 
-    hass.services.async_register(DOMAIN, "save_recipes",    handle_save_recipes)
-    hass.services.async_register(DOMAIN, "announce_timer",  handle_announce_timer)
-
-    _LOGGER.info("Rezepte-Integration geladen (Methode: %s, Geraete: %s)", announce_method, media_players)
+    hass.services.async_register(DOMAIN, "save_recipes",   handle_save_recipes)
+    hass.services.async_register(DOMAIN, "announce_timer", handle_announce_timer)
+    _LOGGER.info("Rezepte geladen – Alexa: %s, TTS: %s", alexa_players, tts_players)
     return True
 
 
