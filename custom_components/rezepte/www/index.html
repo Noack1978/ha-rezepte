@@ -420,7 +420,8 @@ const HA_URL = window.location.origin;
 /* ══ STATE ══ */
 let RECIPES=[], curRecipe=null, curServings=4;
 let cookStep=0, timerInterval=null, timerRemaining=0, timerRunning=false;
-  let _curStepText='', _announceDevices=[], _allMediaPlayers=[];
+  let _curStepText='', _curStepNum=1, _announceDevices=[], _allMediaPlayers=[];
+  let _alexaPlayers=[], _ttsPlayers=[];
 let fEditId=null, fStep=0, fEmoji='🍳', fIngs=[], fSteps=[], fNotes=[];
 
 /* ══ HELPER ══ */
@@ -600,6 +601,7 @@ function renderCookStep(){
   }
   const s=r.steps[cookStep];
   _curStepText=s.text;
+  _curStepNum=cookStep+1;
   const th=s.timerSec?`
     <div class="cook-timer">
       <div class="cook-timer-label" style="display:flex;justify-content:space-between;align-items:center">
@@ -667,13 +669,15 @@ function toggleDevice(eid){
     b.classList.toggle('active',_announceDevices.length>0);
   });
 }
-async function announceTimerEnd(stepText){
-  if(!_announceDevices.length)return;
+async function announceTimerEnd(){
+  const actAlexa=_alexaPlayers.filter(e=>_announceDevices.includes(e));
+  const actTts=_ttsPlayers.filter(e=>_announceDevices.includes(e));
+  if(!actAlexa.length&&!actTts.length)return;
   try{
     await fetch(HA_URL+'/api/services/rezepte/announce_timer',{
       method:'POST',
       headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-      body:JSON.stringify({step_name:stepText,entity_ids:_announceDevices})
+      body:JSON.stringify({step_num:_curStepNum,alexa_players:actAlexa,tts_players:actTts})
     });
   }catch(e){console.warn('Timer-Ansage fehlgeschlagen:',e);}
 }
@@ -689,7 +693,7 @@ function toggleTimer(def){
       if(d){if(timerRemaining<=0){d.textContent='✓ Fertig';d.classList.add('done');stopTimer();
         const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';
         if(navigator.vibrate)navigator.vibrate([400,150,400,150,600]);
-        announceTimerEnd(_curStepText);
+        announceTimerEnd();
       }else{d.textContent=fmtTime(timerRemaining);}}
     },1000);
   }
