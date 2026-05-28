@@ -1,113 +1,63 @@
-# 🍳 Rezepte – Home Assistant Integration
+# 🍳 ha-rezepte
 
-Eine Rezept-Verwaltung als Web-App direkt im Home Assistant Dashboard.  
-Rezepte hinzufügen, bearbeiten, löschen – mit Kochmodus und Timer.
+Rezeptverwaltung als Home Assistant Panel – direkt in der Seitenleiste, optimiert für Tablet und Smartphone.
 
 ## Features
 
-- 📋 Rezepte verwalten (hinzufügen, bearbeiten, löschen)
-- ⚖️ Portionsscaler (Zutaten automatisch umrechnen)
-- 👨‍🍳 Kochmodus mit Schritt-für-Schritt-Ansicht
-- ⏱ Integrierte Timer pro Schritt (mit Vibration)
-- 🔄 Geräteübergreifend (Daten auf dem HA-Server)
-- 📱 Optimiert für Tablet und Companion App
-
----
+- 📋 Rezepte anlegen, bearbeiten und löschen
+- 🔍 Volltextsuche über Titel, Beschreibung, Kategorie und Zutaten
+- 🏷️ Kategorie-Schnellfilter als Buttons
+- 🔤 Alphabetische Sortierung und Gruppierung nach Kategorie
+- 🍳 Kochmodus: Schritt-für-Schritt mit Fortschrittsbalken
+- ⏱️ Timer pro Kochschritt mit Vibration bei Timer-Ende
+- 📢 Timer-Ansagen auf Alexa Echo und anderen Lautsprechern
+- ⚖️ Portionsscaler
+- 📥 Rezept-Import via [ha-rezepte-import](https://github.com/Noack1978/ha-rezepte-import)
 
 ## Installation
 
-### Via HACS (empfohlen)
+### Via HACS
 
 1. HACS → Integrationen → ⋮ → Benutzerdefinierte Repositories
-2. URL dieses Repositories eintragen, Kategorie: **Integration**
-3. Integration **Rezepte** installieren
-4. Home Assistant neu starten
+2. URL: `https://github.com/Noack1978/ha-rezepte`, Kategorie: **Integration**
+3. **ha-rezepte** installieren → HA neu starten
 
 ### Manuell
 
-1. Ordner `custom_components/rezepte/` nach `/config/custom_components/rezepte/` kopieren
-2. Home Assistant neu starten
-
----
+`custom_components/rezepte/` nach `/config/custom_components/rezepte/` kopieren, HA neu starten.
 
 ## Einrichtung
 
-1. **Einstellungen → Integrationen → + Hinzufügen → „Rezepte"** suchen
-2. Einmal bestätigen – fertig
+Einstellungen → Integrationen → + → **Rezepte**
 
-Die Integration richtet automatisch ein:
-- Web-App unter `/local/rezepte/index.html`
-- Service `rezepte.save_recipes`
-- Eintrag **Rezepte** in der Seitenleiste
+### Timer-Ansagen konfigurieren
 
-### Long-Lived Access Token
+| Feld | Beschreibung |
+|------|-------------|
+| Alexa Echo-Geräte | Echo-Lautsprecher → Alexa Announce |
+| Andere Lautsprecher | Sonos, TV, … → HA TTS |
+| TTS-Engine | Standard: `tts.google_translate_de_de` (eingebaut, kostenlos) |
 
-**HA → Profil → Sicherheit → Langlebige Zugriffstoken → Token erstellen**
+Geräte-Auswahl auch direkt im Kochmodus am Timer möglich (📢-Button).
 
-Den Token beim ersten Start der App im Dialog eingeben.  
-Er wird im Browser-Speicher des Geräts gespeichert.
+**Einstellungen ändern:**
+Integrationen → Rezepte → ⋮ → Neu konfigurieren
 
-### Dashboard-Karte (optional)
+## Changelog
 
-Die App ist automatisch in der Seitenleiste verfügbar.  
-Alternativ als Dashboard-Karte:
+### v1.3.0
+- 🔍 Volltextsuche (Titel, Beschreibung, Kategorie, Zutaten)
+- 🏷️ Kategorie-Schnellfilter als scrollbare Buttons
+- 🔧 Timer-Ansagen Zuverlässigkeit verbessert
 
-```yaml
-type: webpage
-url: /local/rezepte/index.html
-aspect_ratio: "16:9"
-```
+### v1.3.0
+- 📢 Timer-Ansagen bei Timer-Ende
+- Alexa Echo und HA TTS (Sonos, TV, …) gleichzeitig nutzbar
+- Geräte-Auswahl im Kochmodus
 
----
-
-## Rezeptformat
-
-Rezepte werden in `/config/www/rezepte/recipes.json` gespeichert.
-
-```json
-[
-  {
-    "id": 1748000000000,
-    "title": "Rezeptname",
-    "subtitle": "z. B. Thermomix TM31",
-    "emoji": "🍳",
-    "category": "Hauptgericht",
-    "description": "Kurzbeschreibung",
-    "baseServings": 4,
-    "servingLabel": "Portionen",
-    "ingredients": [
-      { "amount": 200, "unit": "g", "name": "Zutatname" }
-    ],
-    "steps": [
-      { "text": "Schrittbeschreibung", "timerSec": 300 }
-    ],
-    "notes": ["Tipp oder Hinweis"]
-  }
-]
-```
-
-**Unterstützte Einheiten:** `g` `kg` `ml` `l` `TL` `EL` `Stk.` `Prise` `n.B.`  
-**`timerSec`:** Zeit in Sekunden (0 = kein Timer)
-
----
-
-## Struktur
-
-```
-custom_components/rezepte/
-├── __init__.py          # Service-Registrierung, Panel, Datei-Setup
-├── config_flow.py       # Einrichtungs-Dialog
-├── manifest.json        # Integration-Metadaten
-├── services.yaml        # Service-Schema
-├── strings.json         # UI-Texte
-├── translations/
-│   └── de.json          # Deutsche Übersetzung
-└── www/
-    ├── index.html       # Web-App
-    └── recipes.json     # Initiale Beispieldaten
-```
-
----
+### v1.3.0
+- PDF-Import (via ha-rezepte-import)
+- Sortierung und Gruppierung nach Kategorie
 
 ## Lizenz
 
