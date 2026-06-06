@@ -18,6 +18,8 @@ Rezeptverwaltung als Home Assistant Panel – direkt in der Seitenleiste, optimi
 
 ### Via HACS
 
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Noack1978&repository=ha-rezepte&category=integration)
+
 1. HACS → Integrationen → ⋮ → Benutzerdefinierte Repositories
 2. URL: `https://github.com/Noack1978/ha-rezepte`, Kategorie: **Integration**
 3. **ha-rezepte** installieren → HA neu starten
@@ -45,17 +47,20 @@ Integrationen → Rezepte → ⋮ → Neu konfigurieren
 
 ## Changelog
 
+### v1.3.1
+- 🎨 Icon und Logo hinzugefügt
+
 ### v1.3.0
 - 🔍 Volltextsuche (Titel, Beschreibung, Kategorie, Zutaten)
 - 🏷️ Kategorie-Schnellfilter als scrollbare Buttons
 - 🔧 Timer-Ansagen Zuverlässigkeit verbessert
 
-### v1.3.0
+### v1.2.3
 - 📢 Timer-Ansagen bei Timer-Ende
 - Alexa Echo und HA TTS (Sonos, TV, …) gleichzeitig nutzbar
 - Geräte-Auswahl im Kochmodus
 
-### v1.3.0
+### v1.2.0
 - PDF-Import (via ha-rezepte-import)
 - Sortierung und Gruppierung nach Kategorie
 
