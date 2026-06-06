@@ -255,6 +255,31 @@
     .cat-btn{background:var(--bg2);border:1.5px solid var(--border);border-radius:20px;padding:4px 13px;font-size:.8rem;font-family:'Source Sans 3',sans-serif;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
     .cat-btn:hover{border-color:var(--accent);color:var(--accent)}
     .cat-btn.active{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:600}
+
+    /* ── Einkaufsliste ── */
+    .shop-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;display:none}
+    .shop-overlay.open{display:block}
+    .shop-panel{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);border-radius:18px 18px 0 0;padding:20px 18px 32px;z-index:251;max-height:80vh;overflow-y:auto;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+    .shop-panel.open{transform:translateY(0)}
+    .shop-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .shop-panel-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--accent2)}
+    .shop-close{background:var(--bg2);border:none;color:var(--text2);border-radius:50%;width:28px;height:28px;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .shop-todo-wrap{margin-bottom:14px}
+    .shop-todo-label{font-size:.76rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;display:block}
+    .shop-todo-select{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 12px;font-size:.9rem;font-family:'Source Sans 3',sans-serif;color:var(--text);cursor:pointer}
+    .shop-todo-select:focus{outline:none;border-color:var(--accent)}
+    .shop-toggle-all{background:none;border:none;font-size:.8rem;color:var(--accent);cursor:pointer;padding:0;margin-bottom:10px;font-family:'Source Sans 3',sans-serif;font-weight:600}
+    .shop-ing-list{display:flex;flex-direction:column;gap:2px;margin-bottom:16px}
+    .shop-ing-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:var(--r-sm);cursor:pointer;transition:background .12s}
+    .shop-ing-item:hover{background:var(--bg2)}
+    .shop-check{width:22px;height:22px;border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.78rem;transition:all .15s}
+    .shop-check.on{background:var(--accent);border-color:var(--accent);color:#fff}
+    .shop-ing-name{flex:1;font-size:.88rem;color:var(--text)}
+    .shop-ing-amt{font-size:.82rem;color:var(--accent);font-weight:600;min-width:60px;text-align:right}
+    .shop-confirm{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:12px;font-size:.95rem;font-weight:600;font-family:'Source Sans 3',sans-serif;cursor:pointer;transition:background .2s}
+    .shop-confirm:hover{background:var(--accent2)}
+    .shop-confirm:disabled{opacity:.45;pointer-events:none}
+    .shop-hint{font-size:.78rem;color:var(--text3);text-align:center;margin-top:9px}
   </style>
 </head>
 <body>
@@ -292,6 +317,7 @@
   <div class="header">
     <button class="btn-icon accent" onclick="showView('home')">←</button>
     <h1 id="detail-title"></h1>
+    <button class="btn-icon" onclick="openShopPanel()" title="Zur Einkaufsliste">🛒</button>
     <button class="btn-icon" onclick="openFormEdit()" title="Bearbeiten">✏️</button>
     <button class="btn-icon danger" onclick="confirmDelete()" title="Löschen">🗑️</button>
   </div>
@@ -426,6 +452,25 @@
   </div>
   <div class="form-footer" id="imp-footer"></div>
 </div>
+<!-- ═══ EINKAUFSLISTE PANEL ═══ -->
+<div class="shop-overlay" id="shop-overlay" onclick="closeShopPanel()"></div>
+<div class="shop-panel" id="shop-panel">
+  <div class="shop-panel-header">
+    <span class="shop-panel-title">🛒 Zur Einkaufsliste</span>
+    <button class="shop-close" onclick="closeShopPanel()">✕</button>
+  </div>
+  <div class="shop-todo-wrap">
+    <span class="shop-todo-label">Einkaufsliste auswählen</span>
+    <select class="shop-todo-select" id="shop-todo-select">
+      <option value="">Lade Listen…</option>
+    </select>
+  </div>
+  <button class="shop-toggle-all" onclick="shopToggleAll()">☑ Alle abwählen</button>
+  <div class="shop-ing-list" id="shop-ing-list"></div>
+  <button class="shop-confirm" id="shop-confirm-btn" onclick="addToShopList()">Zur Einkaufsliste hinzufügen</button>
+  <p class="shop-hint" id="shop-hint"></p>
+</div>
+
 <div class="toast" id="toast"></div>
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
@@ -648,6 +693,121 @@ function chgServ(d) {
   document.getElementById('serv-cnt').textContent=curServings;
   document.querySelectorAll('.ing-amt').forEach((el,i)=>{
     const g=curRecipe.ingredients[i];if(g)el.textContent=scale(g.amount)+' '+g.unit;});
+}
+
+/* ══ EINKAUFSLISTE ══ */
+let _shopChecked=[];
+
+async function openShopPanel() {
+  const r=curRecipe;
+  _shopChecked=r.ingredients.map((_,i)=>i); // alle vorausgewählt
+
+  // Zutaten rendern
+  document.getElementById('shop-ing-list').innerHTML=r.ingredients.map((g,i)=>{
+    const amt=scale(g.amount);
+    const amtStr=(g.amount&&g.amount>0)?(amt+(g.unit&&g.unit!=='n.B.'?' '+g.unit:'')):'';
+    return`<div class="shop-ing-item" onclick="shopToggleIng(${i})">
+      <div class="shop-check on" id="shk-${i}">✓</div>
+      <span class="shop-ing-name">${esc(g.name)}</span>
+      ${amtStr?`<span class="shop-ing-amt">${esc(amtStr)}</span>`:''}
+    </div>`;
+  }).join('');
+
+  shopUpdateBtn();
+
+  // Todo-Listen laden
+  const sel=document.getElementById('shop-todo-select');
+  sel.innerHTML='<option value="">Lade…</option>';
+  sel.disabled=true;
+  try {
+    const resp=await fetch(`${HA_URL}/api/states`,{
+      headers:{'Authorization':`Bearer ${HA_TOKEN}`}
+    });
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const states=await resp.json();
+    const todos=states.filter(s=>s.entity_id.startsWith('todo.'));
+    if(!todos.length){
+      sel.innerHTML='<option value="">Keine Einkaufslisten gefunden</option>';
+    } else {
+      sel.innerHTML=todos.map(s=>{
+        const name=s.attributes.friendly_name||s.entity_id;
+        return`<option value="${s.entity_id}">${name}</option>`;
+      }).join('');
+      sel.disabled=false;
+    }
+  } catch(e) {
+    sel.innerHTML='<option value="">Fehler beim Laden (Token prüfen)</option>';
+  }
+
+  document.getElementById('shop-overlay').classList.add('open');
+  document.getElementById('shop-panel').classList.add('open');
+}
+
+function closeShopPanel() {
+  document.getElementById('shop-overlay').classList.remove('open');
+  document.getElementById('shop-panel').classList.remove('open');
+}
+
+function shopToggleIng(i) {
+  const idx=_shopChecked.indexOf(i);
+  if(idx>=0) _shopChecked.splice(idx,1); else _shopChecked.push(i);
+  const el=document.getElementById('shk-'+i);
+  if(el){const on=_shopChecked.includes(i);el.classList.toggle('on',on);el.textContent=on?'✓':'';}
+  shopUpdateBtn();
+}
+
+function shopToggleAll() {
+  const r=curRecipe;
+  const allOn=_shopChecked.length===r.ingredients.length;
+  _shopChecked=allOn?[]:r.ingredients.map((_,i)=>i);
+  r.ingredients.forEach((_,i)=>{
+    const el=document.getElementById('shk-'+i);
+    if(el){const on=_shopChecked.includes(i);el.classList.toggle('on',on);el.textContent=on?'✓':'';}
+  });
+  document.querySelector('.shop-toggle-all').textContent=
+    _shopChecked.length?'☑ Alle abwählen':'☐ Alle auswählen';
+  shopUpdateBtn();
+}
+
+function shopUpdateBtn() {
+  const n=_shopChecked.length;
+  const btn=document.getElementById('shop-confirm-btn');
+  btn.disabled=n===0;
+  btn.textContent=n?`${n} Zutat${n!==1?'en':''} hinzufügen`:'Keine Zutaten gewählt';
+  document.querySelector('.shop-toggle-all').textContent=
+    (n===curRecipe.ingredients.length)?'☑ Alle abwählen':'☐ Alle auswählen';
+}
+
+async function addToShopList() {
+  const entityId=document.getElementById('shop-todo-select').value;
+  if(!entityId){showToast('⚠️ Bitte eine Liste auswählen','err');return;}
+  const r=curRecipe;
+  const selected=_shopChecked.map(i=>r.ingredients[i]);
+  if(!selected.length) return;
+
+  const btn=document.getElementById('shop-confirm-btn');
+  btn.disabled=true;
+  btn.textContent='Füge hinzu…';
+
+  let ok=0,fail=0;
+  for(const g of selected){
+    const amt=scale(g.amount);
+    const amtStr=(g.amount&&g.amount>0)?(amt+(g.unit&&g.unit!=='n.B.'?' '+g.unit:'')):'';
+    const item=amtStr?`${amtStr} ${g.name}`:g.name;
+    try{
+      const resp=await fetch(`${HA_URL}/api/services/todo/add_item`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${HA_TOKEN}`,'Content-Type':'application/json'},
+        body:JSON.stringify({entity_id:entityId,item})
+      });
+      if(resp.ok) ok++; else fail++;
+    }catch(e){fail++;}
+  }
+
+  closeShopPanel();
+  if(fail===0) showToast(`✅ ${ok} Zutat${ok!==1?'en':''} zur Einkaufsliste hinzugefügt`,'ok');
+  else if(ok===0) showToast('⚠️ Fehler beim Hinzufügen – Token prüfen','err');
+  else showToast(`✅ ${ok} hinzugefügt, ${fail} fehlgeschlagen`,'ok');
 }
 
 /* ══ COOK ══ */
