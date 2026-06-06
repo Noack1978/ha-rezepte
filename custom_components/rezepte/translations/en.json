@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Recipes",
+        "description": "Configure speakers for timer announcements.",
+        "data": {
+          "alexa_players": "Alexa Echo Devices",
+          "tts_players": "Other speakers (Sonos, TV, …)",
+          "tts_engine": "TTS Engine"
+        },
+        "data_description": {
+          "alexa_players": "Echo devices that will be announced via Alexa Announce when a timer ends.",
+          "tts_players": "Sonos, TV, or other speakers – use HA TTS.",
+          "tts_engine": "Only for 'Other speakers'. Default: tts.google_translate_de_de"
+        }
+      },
+      "reconfigure": {
+        "title": "Adjust Speakers",
+        "data": {
+          "alexa_players": "Alexa Echo Devices",
+          "tts_players": "Other speakers (Sonos, TV, …)",
+          "tts_engine": "TTS Engine"
+        },
+        "data_description": {
+          "alexa_players": "Echo devices that will be announced via Alexa Announce when a timer ends.",
+          "tts_players": "Sonos, TV, or other speakers – use HA TTS.",
+          "tts_engine": "Only for 'Other speakers'. Default: tts.google_translate_de_de"
+        }
+      }
+    },
+    "abort": {
+      "reconfigure_successful": "Settings have been updated."
+    }
+  }
+}
