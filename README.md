@@ -12,6 +12,7 @@ Rezeptverwaltung als Home Assistant Panel – direkt in der Seitenleiste, optimi
 - ⏱️ Timer pro Kochschritt mit Vibration bei Timer-Ende
 - 📢 Timer-Ansagen auf Alexa Echo und anderen Lautsprechern
 - ⚖️ Portionsscaler
+- 🛒 Zutaten direkt zur Einkaufsliste hinzufügen (Bring! & andere todo-Listen)
 - 📥 Rezept-Import via [ha-rezepte-import](https://github.com/Noack1978/ha-rezepte-import)
 
 ## Installation
@@ -45,7 +46,16 @@ Geräte-Auswahl auch direkt im Kochmodus am Timer möglich (📢-Button).
 **Einstellungen ändern:**
 Integrationen → Rezepte → ⋮ → Neu konfigurieren
 
+### Einkaufsliste
+
+Im Rezept auf 🛒 tippen → Zutaten per Checkbox auswählen → Einkaufsliste wählen → Hinzufügen.
+
+Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel mit Bring! und allen anderen `todo`-Entities in Home Assistant.
+
 ## Changelog
+
+### v1.3.2
+- 🛒 Zutaten zur Einkaufsliste hinzufügen (Checkbox-Auswahl + todo-Listen-Auswahl)
 
 ### v1.3.1
 - 🎨 Icon und Logo hinzugefügt
