@@ -965,15 +965,26 @@ function restoreCookState(){
     document.getElementById('cook-title').textContent=curRecipe.title;
     document.getElementById('sidebar-ings').innerHTML=
       curRecipe.ingredients.map(g=>`<div class="sidebar-ing"><span class="sidebar-amt">${scale(g.amount)} ${esc(g.unit)}</span><span>${esc(g.name)}</span></div>`).join('');
+    // timerRemaining sichern – renderCookStep/stopTimer setzt ihn auf 0 zurück
+    const _restoreTime=timerRemaining;
     renderCookStep();
     showView('cook');
-    // Timer weiter starten wenn er lief
-    if(timerRemaining>0&&wasRunning){
-      const step=curRecipe.steps[cookStep];
-      if(step&&step.timerSec) setTimeout(()=>toggleTimer(step.timerSec),200);
-    } else if(timerRemaining>0){
-      // Pausiert – Display aktualisieren
-      setTimeout(()=>{const d=document.getElementById('t-disp');if(d)d.textContent=fmtTime(timerRemaining);},150);
+    // timerRemaining nach stopTimer() wiederherstellen
+    timerRemaining=_restoreTime;
+    // Display sofort korrigieren (renderCookStep zeigt Ausgangswert)
+    if(_restoreTime>0){
+      const d=document.getElementById('t-disp');
+      if(d){d.textContent=fmtTime(_restoreTime);d.classList.remove('done');}
+      if(wasRunning){
+        // Timer automatisch weiter starten
+        const step=curRecipe.steps[cookStep];
+        const def=step&&step.timerSec?step.timerSec:_restoreTime;
+        setTimeout(()=>toggleTimer(def),150);
+      } else {
+        // Pausiert: Button zeigen
+        const b=document.getElementById('t-btn');
+        if(b)b.textContent='▶ Start';
+      }
     }
     setTimeout(()=>{
       document.getElementById('cook-sidebar').classList.add('open');
