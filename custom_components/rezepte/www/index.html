@@ -105,7 +105,7 @@
     .sidebar-ing:last-child{border-bottom:none}
     .sidebar-amt{color:#ffd080;font-weight:600;min-width:48px;flex-shrink:0;font-variant-numeric:tabular-nums}
     .sidebar-close{display:block;margin-top:16px;width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:8px;font-family:'Source Sans 3',sans-serif;font-size:.82rem;cursor:pointer}
-    .btn-sidebar{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:7px 13px;font-size:.79rem;font-family:'Source Sans 3',sans-serif;cursor:pointer;flex-shrink:0}
+    .btn-sidebar{background:var(--accent2);border:1px solid var(--accent);color:#fff;border-radius:8px;padding:7px 14px;font-size:.82rem;font-family:'Source Sans 3',sans-serif;cursor:pointer;flex-shrink:0;font-weight:600}
     .btn-sidebar:hover{background:rgba(255,255,255,.14)}
     .form-modal{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
     .form-modal.open{transform:translateY(0)}
@@ -336,7 +336,8 @@
   <div class="cook-main" id="cook-main"></div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
   <div class="cook-sidebar" id="cook-sidebar">
-    <h3>Zutaten</h3><div id="sidebar-ings"></div>
+    <h3>Zutaten <span style="font-size:.72rem;opacity:.55;font-family:'Source Sans 3',sans-serif;font-weight:400">(skaliert)</span></h3>
+    <div id="sidebar-ings"></div>
     <button class="sidebar-close" onclick="toggleSidebar()">✕ Schließen</button>
   </div>
 </div>
@@ -516,7 +517,7 @@ async function init() {
     RECIPES=[];
     showToast('⚠️ recipes.json nicht gefunden – Datei anlegen!','err');
   }
-  renderHome();
+  if(!restoreCookState()) renderHome();
 }
 
 /* ══ SAVE ══ */
@@ -816,15 +817,20 @@ function startCook() {
   document.getElementById('cook-title').textContent=curRecipe.title;
   document.getElementById('sidebar-ings').innerHTML=
     curRecipe.ingredients.map(g=>`<div class="sidebar-ing"><span class="sidebar-amt">${scale(g.amount)} ${esc(g.unit)}</span><span>${esc(g.name)}</span></div>`).join('');
-  renderCookStep(); showView('cook');
+  renderCookStep(); showView('cook'); saveCookState();
+  // Zutatensidebar automatisch öffnen (zeigt skalierte Mengen)
+  setTimeout(()=>{
+    document.getElementById('cook-sidebar').classList.add('open');
+    document.getElementById('sidebar-overlay').classList.add('open');
+  }, 300);
 }
-function exitCook(){stopTimer();showView('detail');}
+function exitCook(){stopTimer();clearCookState();showView('detail');}
 function renderCookStep(){
   const r=curRecipe,tot=r.steps.length,pct=Math.round((cookStep/tot)*100);
-  document.getElementById('cook-prog-fill').style.width=pct+'%';
+  clearCookState();document.getElementById('cook-prog-fill').style.width=pct+'%';
   document.getElementById('cook-prog-txt').textContent=cookStep<tot?`${cookStep+1} / ${tot}`:'Fertig!';
   if(cookStep>=tot){
-    document.getElementById('cook-prog-fill').style.width='100%';
+    clearCookState();document.getElementById('cook-prog-fill').style.width='100%';
     document.getElementById('cook-main').innerHTML=`
       <div class="cook-done fade-in">
         <span class="done-icon">🎉</span><h2>Guten Appetit!</h2>
@@ -858,8 +864,8 @@ function renderCookStep(){
     </div>`;
   stopTimer();
 }
-function nextStep(){stopTimer();cookStep++;renderCookStep();}
-function prevStep(){stopTimer();cookStep=Math.max(0,cookStep-1);renderCookStep();}
+function nextStep(){stopTimer();cookStep++;renderCookStep();saveCookState();}
+function prevStep(){stopTimer();cookStep=Math.max(0,cookStep-1);renderCookStep();saveCookState();}
 
 /* ══ TIMER ══ */
 /* ══ TIMER-ANSAGE ══ */
@@ -927,14 +933,67 @@ async function announceTimerEnd(){
   }catch(e){console.warn('Timer-Ansage fehlgeschlagen:',e);}
 }
 
+/* ══ KOCHMODUS STATE (localStorage) ══ */
+function saveCookState(){
+  if(!curRecipe)return;
+  if(!document.getElementById('cook-view').classList.contains('active'))return;
+  try{localStorage.setItem('_cookState',JSON.stringify({
+    recipeId:curRecipe.id, cookStep:cookStep, servings:curServings,
+    timerRemaining:timerRemaining, timerRunning:timerRunning,
+    timerSavedAt:Date.now()
+  }));}catch(e){}
+}
+function clearCookState(){ localStorage.removeItem('_cookState'); }
+function restoreCookState(){
+  try{
+    const raw=localStorage.getItem('_cookState');
+    if(!raw)return false;
+    const s=JSON.parse(raw);
+    if(!s||!s.recipeId)return false;
+    const recipe=RECIPES.find(r=>r.id===s.recipeId);
+    if(!recipe){clearCookState();return false;}
+    curRecipe=recipe;
+    curServings=s.servings||recipe.baseServings;
+    cookStep=s.cookStep||0;
+    const wasRunning=s.timerRunning;
+    if(s.timerRunning&&s.timerRemaining>0){
+      const elapsed=Math.floor((Date.now()-s.timerSavedAt)/1000);
+      timerRemaining=Math.max(0,s.timerRemaining-elapsed);
+    }else{
+      timerRemaining=s.timerRemaining||0;
+    }
+    document.getElementById('cook-title').textContent=curRecipe.title;
+    document.getElementById('sidebar-ings').innerHTML=
+      curRecipe.ingredients.map(g=>`<div class="sidebar-ing"><span class="sidebar-amt">${scale(g.amount)} ${esc(g.unit)}</span><span>${esc(g.name)}</span></div>`).join('');
+    renderCookStep();
+    showView('cook');
+    // Timer weiter starten wenn er lief
+    if(timerRemaining>0&&wasRunning){
+      const step=curRecipe.steps[cookStep];
+      if(step&&step.timerSec) setTimeout(()=>toggleTimer(step.timerSec),200);
+    } else if(timerRemaining>0){
+      // Pausiert – Display aktualisieren
+      setTimeout(()=>{const d=document.getElementById('t-disp');if(d)d.textContent=fmtTime(timerRemaining);},150);
+    }
+    setTimeout(()=>{
+      document.getElementById('cook-sidebar').classList.add('open');
+      document.getElementById('sidebar-overlay').classList.add('open');
+    },300);
+    showToast('🍳 Kochmodus wiederhergestellt','ok');
+    return true;
+  }catch(e){clearCookState();return false;}
+}
+// State speichern wenn App in Hintergrund geht
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCookState();});
+
 function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
 function toggleTimer(def){
-  if(timerRunning){clearInterval(timerInterval);timerRunning=false;const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';}
+  if(timerRunning){clearInterval(timerInterval);timerRunning=false;const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';saveCookState();}
   else{
-    if(timerRemaining<=0)timerRemaining=def;timerRunning=true;
+    if(timerRemaining<=0)timerRemaining=def;timerRunning=true;saveCookState();
     const b=document.getElementById('t-btn');if(b)b.textContent='⏸ Pause';
     timerInterval=setInterval(()=>{
-      timerRemaining--;const d=document.getElementById('t-disp');
+      timerRemaining--;if(timerRemaining%5===0)saveCookState();const d=document.getElementById('t-disp');
       if(d){if(timerRemaining<=0){d.textContent='✓ Fertig';d.classList.add('done');stopTimer();
         const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';
         if(navigator.vibrate)navigator.vibrate([400,150,400,150,600]);
