@@ -793,7 +793,7 @@ async function addToShopList() {
   for(const g of selected){
     const amt=scale(g.amount);
     const amtStr=(g.amount&&g.amount>0)?(amt+(g.unit&&g.unit!=='n.B.'?' '+g.unit:'')):'';
-    const item=amtStr?`${amtStr} ${g.name}`:g.name;
+    const item=amtStr?`${esc(g.name)} (${amtStr})`:g.name;
     try{
       const resp=await fetch(`${HA_URL}/api/services/todo/add_item`,{
         method:'POST',
