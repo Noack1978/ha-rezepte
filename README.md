@@ -55,7 +55,9 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 ## Changelog
 
 ### v1.3.3
-- Einkaufsliste: Zutaten werden jetzt im Format **„Mehl (250 g)"** hinzugefügt statt „250 g Mehl"
+- Kochmodus wird nach HA-Seitenneuladen automatisch
+  wiederhergestellt (letzter Schritt, Timer-Stand)
+- Einkaufsliste: Zutaten im Format „Mehl (250 g)"
 
 ### v1.3.2
 - 🛒 Zutaten zur Einkaufsliste hinzufügen (Checkbox-Auswahl + todo-Listen-Auswahl)
