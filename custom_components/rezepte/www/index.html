@@ -969,6 +969,11 @@ function restoreCookState(){
     document.getElementById('cook-title').textContent=curRecipe.title;
     document.getElementById('sidebar-ings').innerHTML=
       curRecipe.ingredients.map(g=>`<div class="sidebar-ing"><span class="sidebar-amt">${scale(g.amount)} ${esc(g.unit)}</span><span>${esc(g.name)}</span></div>`).join('');
+    // Home- und Detailansicht im Hintergrund mit aufbauen,
+    // damit sie nach Beenden des Kochmodus korrekt angezeigt werden (nicht "Lade...")
+    renderHome();
+    document.getElementById('detail-title').textContent=curRecipe.title;
+    renderDetail();
     // timerRemaining sichern – renderCookStep/stopTimer setzt ihn auf 0 zurück
     const _restoreTime=timerRemaining;
     renderCookStep();
