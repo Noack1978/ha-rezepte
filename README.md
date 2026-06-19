@@ -55,8 +55,11 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 ## Changelog
 
 ### v1.3.3
-- Kochmodus wird nach HA-Seitenneuladen automatisch
-  wiederhergestellt (letzter Schritt, Timer-Stand)
+- Kochmodus wird nach HA-Seitenneuladen automatisch wiederhergestellt
+  (letzter Schritt, Timer-Stand inkl. verstrichener Zeit)
+- Navigationsschutz: Zurück-Geste/Browser-Zurück verlässt den
+  Kochmodus nicht mehr ungewollt
+- Beenden-Button im Kochmodus deutlich präsenter gestaltet
 - Einkaufsliste: Zutaten im Format „Mehl (250 g)"
 
 ### v1.3.2
