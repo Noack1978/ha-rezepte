@@ -508,15 +508,20 @@ const _REZEPTE_HTML = `
 class RezeptePanel extends HTMLElement {
   set hass(hass) {
     window._rezepteHass = hass;
-    if (!this._panelReady) this._setup();
+    // Erst initialisieren wenn Element im DOM ist (connectedCallback)
+    if (!this._panelReady && this.isConnected) this._setup();
   }
 
   connectedCallback() {
-    if (!this._panelReady) this._setup();
+    // Sicherstellen dass hass bereits gesetzt wurde
+    if (!this._panelReady) {
+      this._panelReady = true;
+      // Kurze Verzögerung damit HA hass setzen kann bevor init() läuft
+      Promise.resolve().then(() => this._setup());
+    }
   }
 
   _setup() {
-    this._panelReady = true;
     this.style.cssText = 'display:block;height:100%;overflow:hidden;';
 
     // Style
@@ -530,8 +535,8 @@ class RezeptePanel extends HTMLElement {
     container.innerHTML = _REZEPTE_HTML;
     this.appendChild(container);
 
-    // SPA initialisieren
-    init();
+    // SPA initialisieren (nach nächstem Microtask damit DOM stabil ist)
+    Promise.resolve().then(() => init());
   }
 }
 

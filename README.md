@@ -29,6 +29,29 @@ Rezeptverwaltung als Home Assistant Panel – direkt in der Seitenleiste, optimi
 
 `custom_components/rezepte/` nach `/config/custom_components/rezepte/` kopieren, HA neu starten.
 
+## Dashboard-Karte
+
+Für eine kompakte Rezeptliste direkt im Dashboard steht eine separate Lovelace Card zur Verfügung:
+
+**[ha-rezepte-card](https://github.com/Noack1978/ha-rezepte-card)** – zeigt die Rezeptliste als Kacheln im Dashboard, mit direktem Link zum Panel.
+
+### Installation via HACS
+
+1. HACS → Frontend → ⋮ → Benutzerdefinierte Repositories
+2. URL: `https://github.com/Noack1978/ha-rezepte-card`, Kategorie: **Lovelace**
+3. Karte installieren → HA neu starten
+
+### Konfiguration
+
+```yaml
+type: custom:rezepte-card
+title: Meine Rezepte   # optional
+max_items: 5           # optional, Standard: 5
+panel_path: /rezepte   # optional
+```
+
+Die Karte erscheint automatisch im Lovelace Card Picker.
+
 ## Einrichtung
 
 Einstellungen → Integrationen → + → **Rezepte**
