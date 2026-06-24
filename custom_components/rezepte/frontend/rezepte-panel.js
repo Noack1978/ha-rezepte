@@ -561,6 +561,8 @@ const esc = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 
 /* ══ INIT ══ */
 async function init() {
+  // Home-View als Startzustand anzeigen (ersetzt DOMContentLoaded-Aufruf)
+  showView('home');
   try {
     // Geraete-Konfiguration laden
   try{
@@ -1228,10 +1230,65 @@ async function execDelete(){
   renderHome();showView('home');
 }
 
+
+/* ══ IMPORT MODAL (UI) ══ */
+function impOpen(){document.getElementById('imp-modal').classList.add('open');impTab(0);}
+function impClose(){document.getElementById('imp-modal').classList.remove('open');}
+function impTab(n){
+  document.querySelectorAll('.imp-tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.querySelectorAll('.imp-panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+}
 /* ══ TOAST ══ */
 let _tt=null;
 function showToast(msg,type=''){
   const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type?' '+type:'');
   clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3400);
 }
+
+
+/* ══ GLOBALE FUNKTIONEN FÜR ONCLICK-HANDLER ══ */
+Object.assign(window, {
+  addIngRow,
+  addNoteRow,
+  addStepRow,
+  addToShopList,
+  chgServ,
+  clearSearch,
+  closeConfirm,
+  closeForm,
+  closeShopPanel,
+  closeTimerSettings,
+  confirmDelete,
+  exitCook,
+  formBack,
+  formNext,
+  impClose,
+  impOpen,
+  impTab,
+  nextStep,
+  openForm,
+  openFormEdit,
+  openRecipe,
+  openShopPanel,
+  openTimerSettings,
+  prevStep,
+  resetTimer,
+  rmIng,
+  rmNote,
+  rmStep,
+  setCatFilter,
+  setEmoji,
+  shopToggleAll,
+  shopToggleIng,
+  showView,
+  startCook,
+  submitForm,
+  toggleDevice,
+  toggleEmojiPicker,
+  toggleGroup,
+  toggleSidebar,
+  toggleSort,
+  toggleTimer,
+  updateSearch,
+});
 
