@@ -496,7 +496,8 @@ const HA_URL = window.location.origin;
 
 /* ══ STATE ══ */
 let RECIPES=[], curRecipe=null, curServings=4;
-let cookStep=0, timerInterval=null, timerRemaining=0, timerRunning=false;
+let cookStep=0, timerRunning=false, timerPaused=false, _timerDefaultSec=0, _timerPollInterval=null;
+let TIMER_ENTITY='timer.rezepte_kochtimer', STEP_ENTITY='input_number.rezepte_timer_schritt';
   let _curStepText='', _curStepNum=1, _announceDevices=[], _allMediaPlayers=[];
   let _alexaPlayers=[], _ttsPlayers=[];
 let fEditId=null, fStep=0, fEmoji='🍳', fIngs=[], fSteps=[], fNotes=[];
@@ -512,7 +513,9 @@ async function init() {
     const cfgR=await fetch('/local/rezepte/ha_config.json?_='+Date.now());
     if(cfgR.ok){const cfg=await cfgR.json();
       _allMediaPlayers=cfg.media_players||[];
-      _announceDevices=[..._allMediaPlayers];}
+      _announceDevices=[..._allMediaPlayers];
+      if(cfg.timer_entity)TIMER_ENTITY=cfg.timer_entity;
+      if(cfg.step_entity)STEP_ENTITY=cfg.step_entity;}
   }catch(e){}
   const r=await fetch('/local/rezepte/recipes.json?_='+Date.now());
     if(!r.ok) throw new Error('HTTP '+r.status);
@@ -912,30 +915,7 @@ function toggleDevice(eid){
     b.classList.toggle('active',_announceDevices.length>0);
   });
 }
-async function announceTimerEnd(){
-  // ha_config.json immer neu laden wenn keine getrennten Listen vorhanden
-  // (passiert wenn Seite vor Rekonfiguration geöffnet war)
-  if(!_alexaPlayers.length&&!_ttsPlayers.length){
-    try{
-      const cfgR=await fetch('/local/rezepte/ha_config.json?_='+Date.now());
-      if(cfgR.ok){const cfg=await cfgR.json();
-        _alexaPlayers=cfg.alexa_players||[];
-        _ttsPlayers=cfg.tts_players||[];
-        _allMediaPlayers=cfg.media_players||[];
-        if(!_announceDevices.length)_announceDevices=[..._allMediaPlayers];}
-    }catch(e){}
-  }
-  const actAlexa=_alexaPlayers.filter(e=>_announceDevices.includes(e));
-  const actTts=_ttsPlayers.filter(e=>_announceDevices.includes(e));
-  if(!actAlexa.length&&!actTts.length)return;
-  try{
-    await fetch(HA_URL+'/api/services/rezepte/announce_timer',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-      body:JSON.stringify({step_num:_curStepNum,alexa_players:actAlexa,tts_players:actTts})
-    });
-  }catch(e){console.warn('Timer-Ansage fehlgeschlagen:',e);}
-}
+// announceTimerEnd: wird automatisch von HA via timer.finished-Event ausgelöst
 
 /* ══ KOCHMODUS STATE (localStorage) ══ */
 function saveCookState(){
@@ -1005,7 +985,10 @@ function restoreCookState(){
   }catch(e){clearCookState();return false;}
 }
 // State speichern wenn App in Hintergrund geht
-document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCookState();});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){saveCookState();}
+  else if(timerRunning||timerPaused){_startTimerPoll();}
+});
 
 /* ══ NAVIGATIONSSCHUTZ KOCHMODUS ══ */
 let _cookGuardActive=false;
@@ -1025,23 +1008,97 @@ window.addEventListener('popstate',(e)=>{
 });
 
 function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
-function toggleTimer(def){
-  if(timerRunning){clearInterval(timerInterval);timerRunning=false;const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';saveCookState();}
-  else{
-    if(timerRemaining<=0)timerRemaining=def;timerRunning=true;saveCookState();
-    const b=document.getElementById('t-btn');if(b)b.textContent='⏸ Pause';
-    timerInterval=setInterval(()=>{
-      timerRemaining--;if(timerRemaining%5===0)saveCookState();const d=document.getElementById('t-disp');
-      if(d){if(timerRemaining<=0){d.textContent='✓ Fertig';d.classList.add('done');stopTimer();
-        const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';
-        if(navigator.vibrate)navigator.vibrate([400,150,400,150,600]);
-        announceTimerEnd();
-      }else{d.textContent=fmtTime(timerRemaining);}}
-    },1000);
-  }
+/* ── HA-Timer-Hilfsfunktionen ── */
+function secsToDuration(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
+function _durationToSecs(d){const[h,m,s]=(d||'0:0:0').split(':').map(Number);return(h||0)*3600+(m||0)*60+(s||0);}
+function stopTimer(){
+  timerRunning=false;timerPaused=false;
+  _stopTimerPoll();
+  fetch(`${HA_URL}/api/services/timer/cancel`,{
+    method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify({entity_id:TIMER_ENTITY})
+  }).catch(()=>{});
 }
-function resetTimer(sec){stopTimer();timerRemaining=sec;const d=document.getElementById('t-disp');if(d){d.textContent=fmtTime(sec);d.classList.remove('done');}const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';}
-function stopTimer(){clearInterval(timerInterval);timerRunning=false;timerRemaining=0;}
+async function resetTimer(sec){
+  await fetch(`${HA_URL}/api/services/timer/cancel`,{
+    method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify({entity_id:TIMER_ENTITY})
+  }).catch(()=>{});
+  timerRunning=false;timerPaused=false;_stopTimerPoll();
+  const d=document.getElementById('t-disp');if(d){d.textContent=fmtTime(sec);d.classList.remove('done');}
+  const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';
+}
+async function toggleTimer(def){
+  _timerDefaultSec=def;
+  if(timerRunning){
+    await fetch(`${HA_URL}/api/services/timer/pause`,{
+      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({entity_id:TIMER_ENTITY})
+    }).catch(()=>{});
+    timerRunning=false;timerPaused=true;
+    const b=document.getElementById('t-btn');if(b)b.textContent='▶ Weiter';
+    _stopTimerPoll();
+  }else if(timerPaused){
+    await fetch(`${HA_URL}/api/services/timer/start`,{
+      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({entity_id:TIMER_ENTITY})
+    }).catch(()=>{});
+    timerRunning=true;timerPaused=false;
+    const b=document.getElementById('t-btn');if(b)b.textContent='⏸ Pause';
+    _startTimerPoll();
+  }else{
+    await fetch(`${HA_URL}/api/services/input_number/set_value`,{
+      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({entity_id:STEP_ENTITY,value:_curStepNum})
+    }).catch(()=>{});
+    await fetch(`${HA_URL}/api/services/timer/start`,{
+      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({entity_id:TIMER_ENTITY,duration:secsToDuration(def)})
+    }).catch(()=>{});
+    timerRunning=true;timerPaused=false;
+    const b=document.getElementById('t-btn');if(b)b.textContent='⏸ Pause';
+    _startTimerPoll();
+  }
+  saveCookState();
+}
+function _startTimerPoll(){
+  _stopTimerPoll();
+  _updateTimerDisplay();
+  _timerPollInterval=setInterval(_updateTimerDisplay,1000);
+}
+function _stopTimerPoll(){if(_timerPollInterval){clearInterval(_timerPollInterval);_timerPollInterval=null;}}
+async function _updateTimerDisplay(){
+  try{
+    const r=await fetch(`${HA_URL}/api/states/${TIMER_ENTITY}`,{
+      headers:{'Authorization':'Bearer '+HA_TOKEN}
+    });
+    if(!r.ok)return;
+    const s=await r.json();
+    const d=document.getElementById('t-disp'),b=document.getElementById('t-btn');
+    if(!d)return;
+    if(s.state==='active'){
+      const finishes=new Date(s.attributes.finishes_at);
+      const remaining=Math.max(0,Math.round((finishes-Date.now())/1000));
+      if(remaining<=0){
+        d.textContent='✓ Fertig';d.classList.add('done');
+        if(b)b.textContent='▶ Start';
+        timerRunning=false;timerPaused=false;_stopTimerPoll();
+        if(navigator.vibrate)navigator.vibrate([400,150,400,150,600]);
+      }else{
+        d.textContent=fmtTime(remaining);d.classList.remove('done');
+        if(b)b.textContent='⏸ Pause';
+        timerRunning=true;timerPaused=false;
+      }
+    }else if(s.state==='paused'){
+      const rem=_durationToSecs(s.attributes.remaining||'00:00:00');
+      d.textContent=fmtTime(rem);d.classList.remove('done');
+      if(b)b.textContent='▶ Weiter';
+      timerRunning=false;timerPaused=true;
+    }else{
+      timerRunning=false;timerPaused=false;
+    }
+  }catch(e){}
+}
 
 /* ══ SIDEBAR ══ */
 function toggleSidebar(){document.getElementById('cook-sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open');}
