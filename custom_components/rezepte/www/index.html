@@ -497,7 +497,6 @@ const HA_URL = window.location.origin;
 /* ══ STATE ══ */
 let RECIPES=[], curRecipe=null, curServings=4;
 let cookStep=0, timerRunning=false, timerPaused=false, _timerDefaultSec=0, _timerPollInterval=null;
-let TIMER_ENTITY='timer.rezepte_kochtimer', STEP_ENTITY='input_number.rezepte_timer_schritt';
   let _curStepText='', _curStepNum=1, _announceDevices=[], _allMediaPlayers=[];
   let _alexaPlayers=[], _ttsPlayers=[];
 let fEditId=null, fStep=0, fEmoji='🍳', fIngs=[], fSteps=[], fNotes=[];
@@ -514,8 +513,7 @@ async function init() {
     if(cfgR.ok){const cfg=await cfgR.json();
       _allMediaPlayers=cfg.media_players||[];
       _announceDevices=[..._allMediaPlayers];
-      if(cfg.timer_entity)TIMER_ENTITY=cfg.timer_entity;
-      if(cfg.step_entity)STEP_ENTITY=cfg.step_entity;}
+}
   }catch(e){}
   const r=await fetch('/local/rezepte/recipes.json?_='+Date.now());
     if(!r.ok) throw new Error('HTTP '+r.status);
@@ -885,13 +883,13 @@ function openTimerSettings(){
     el.innerHTML=_allMediaPlayers.map(eid=>{
       const on=_announceDevices.includes(eid);
       const name=eid.replace(/^media_player\./,'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-      return `<div class="ta-device" onclick="toggleDevice('${eid}')">
+      return `<div class="ta-device" style="cursor:default">
         <span class="ta-device-name">${name}</span>
-        <span class="ta-check ${on?'on':''}" id="tac-${eid.replace(/\./g,'-')}">${on?'✓':''}</span>
+        <span class="ta-check on">✓</span>
       </div>`;
     }).join('');
     document.getElementById('ta-hint').textContent=
-      _announceDevices.length?`${_announceDevices.length} Gerät(e) aktiv – Ansage bei Timer-Ende`:'Keine Geräte aktiv – Stille bei Timer-Ende';
+      `${_allMediaPlayers.length} Gerät(e) – Ansage durch Home Assistant`;
   }
   document.getElementById('ta-overlay').classList.add('open');
   document.getElementById('ta-panel').classList.add('open');
@@ -922,9 +920,8 @@ function saveCookState(){
   if(!curRecipe)return;
   if(!document.getElementById('cook-view').classList.contains('active'))return;
   try{localStorage.setItem('_cookState',JSON.stringify({
-    recipeId:curRecipe.id, cookStep:cookStep, servings:curServings,
-    timerRemaining:timerRemaining, timerRunning:timerRunning,
-    timerSavedAt:Date.now()
+    recipeId:curRecipe.id, cookStep:cookStep, servings:curServings
+    // Timer läuft in HA – kein localStorage erforderlich
   }));}catch(e){}
 }
 function clearCookState(){ localStorage.removeItem('_cookState'); }
@@ -939,13 +936,6 @@ function restoreCookState(){
     curRecipe=recipe;
     curServings=s.servings||recipe.baseServings;
     cookStep=s.cookStep||0;
-    const wasRunning=s.timerRunning;
-    if(s.timerRunning&&s.timerRemaining>0){
-      const elapsed=Math.floor((Date.now()-s.timerSavedAt)/1000);
-      timerRemaining=Math.max(0,s.timerRemaining-elapsed);
-    }else{
-      timerRemaining=s.timerRemaining||0;
-    }
     document.getElementById('cook-title').textContent=curRecipe.title;
     document.getElementById('sidebar-ings').innerHTML=
       curRecipe.ingredients.map(g=>`<div class="sidebar-ing"><span class="sidebar-amt">${scale(g.amount)} ${esc(g.unit)}</span><span>${esc(g.name)}</span></div>`).join('');
@@ -954,28 +944,22 @@ function restoreCookState(){
     renderHome();
     document.getElementById('detail-title').textContent=curRecipe.title;
     renderDetail();
-    // timerRemaining sichern – renderCookStep/stopTimer setzt ihn auf 0 zurück
-    const _restoreTime=timerRemaining;
     renderCookStep();
     showView('cook');
-    // timerRemaining nach stopTimer() wiederherstellen
-    timerRemaining=_restoreTime;
-    // Display sofort korrigieren (renderCookStep zeigt Ausgangswert)
-    if(_restoreTime>0){
-      const d=document.getElementById('t-disp');
-      if(d){d.textContent=fmtTime(_restoreTime);d.classList.remove('done');}
-      if(wasRunning){
-        // Timer automatisch weiter starten
-        const step=curRecipe.steps[cookStep];
-        const def=step&&step.timerSec?step.timerSec:_restoreTime;
-        setTimeout(()=>toggleTimer(def),150);
-      } else {
-        // Pausiert: Button zeigen
-        const b=document.getElementById('t-btn');
-        if(b)b.textContent='▶ Start';
-      }
-    }
     enableCookGuard();
+    // Timer-Status aus timer_state.json wiederherstellen
+    setTimeout(async()=>{
+      try{
+        const tr=await fetch(`/local/rezepte/timer_state.json?_=${Date.now()}`);
+        if(tr.ok){
+          const ts=await tr.json();
+          if(ts.state==='active'||ts.state==='paused'){
+            timerRunning=ts.state==='active';timerPaused=ts.state==='paused';
+            _startTimerPoll();
+          }
+        }
+      }catch(e){}
+    },200);
     setTimeout(()=>{
       document.getElementById('cook-sidebar').classList.add('open');
       document.getElementById('sidebar-overlay').classList.add('open');
@@ -1009,21 +993,20 @@ window.addEventListener('popstate',(e)=>{
 
 function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
 /* ── HA-Timer-Hilfsfunktionen ── */
-function secsToDuration(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
-function _durationToSecs(d){const[h,m,s]=(d||'0:0:0').split(':').map(Number);return(h||0)*3600+(m||0)*60+(s||0);}
+/* ── Interner HA-Timer (rezepte.timer_*) ── */
+function _haCall(svc,data){
+  return fetch(`${HA_URL}/api/services/rezepte/${svc}`,{
+    method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify(data||{})
+  }).catch(()=>{});
+}
 function stopTimer(){
   timerRunning=false;timerPaused=false;
   _stopTimerPoll();
-  fetch(`${HA_URL}/api/services/timer/cancel`,{
-    method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-    body:JSON.stringify({entity_id:TIMER_ENTITY})
-  }).catch(()=>{});
+  _haCall('timer_cancel');
 }
 async function resetTimer(sec){
-  await fetch(`${HA_URL}/api/services/timer/cancel`,{
-    method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-    body:JSON.stringify({entity_id:TIMER_ENTITY})
-  }).catch(()=>{});
+  await _haCall('timer_cancel');
   timerRunning=false;timerPaused=false;_stopTimerPoll();
   const d=document.getElementById('t-disp');if(d){d.textContent=fmtTime(sec);d.classList.remove('done');}
   const b=document.getElementById('t-btn');if(b)b.textContent='▶ Start';
@@ -1031,30 +1014,17 @@ async function resetTimer(sec){
 async function toggleTimer(def){
   _timerDefaultSec=def;
   if(timerRunning){
-    await fetch(`${HA_URL}/api/services/timer/pause`,{
-      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-      body:JSON.stringify({entity_id:TIMER_ENTITY})
-    }).catch(()=>{});
+    await _haCall('timer_pause');
     timerRunning=false;timerPaused=true;
     const b=document.getElementById('t-btn');if(b)b.textContent='▶ Weiter';
     _stopTimerPoll();
   }else if(timerPaused){
-    await fetch(`${HA_URL}/api/services/timer/start`,{
-      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-      body:JSON.stringify({entity_id:TIMER_ENTITY})
-    }).catch(()=>{});
+    await _haCall('timer_resume');
     timerRunning=true;timerPaused=false;
     const b=document.getElementById('t-btn');if(b)b.textContent='⏸ Pause';
     _startTimerPoll();
   }else{
-    await fetch(`${HA_URL}/api/services/input_number/set_value`,{
-      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-      body:JSON.stringify({entity_id:STEP_ENTITY,value:_curStepNum})
-    }).catch(()=>{});
-    await fetch(`${HA_URL}/api/services/timer/start`,{
-      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
-      body:JSON.stringify({entity_id:TIMER_ENTITY,duration:secsToDuration(def)})
-    }).catch(()=>{});
+    await _haCall('timer_start',{duration:def,step_num:_curStepNum});
     timerRunning=true;timerPaused=false;
     const b=document.getElementById('t-btn');if(b)b.textContent='⏸ Pause';
     _startTimerPoll();
@@ -1069,34 +1039,25 @@ function _startTimerPoll(){
 function _stopTimerPoll(){if(_timerPollInterval){clearInterval(_timerPollInterval);_timerPollInterval=null;}}
 async function _updateTimerDisplay(){
   try{
-    const r=await fetch(`${HA_URL}/api/states/${TIMER_ENTITY}`,{
-      headers:{'Authorization':'Bearer '+HA_TOKEN}
-    });
+    const r=await fetch(`/local/rezepte/timer_state.json?_=${Date.now()}`);
     if(!r.ok)return;
     const s=await r.json();
     const d=document.getElementById('t-disp'),b=document.getElementById('t-btn');
     if(!d)return;
     if(s.state==='active'){
-      const finishes=new Date(s.attributes.finishes_at);
-      const remaining=Math.max(0,Math.round((finishes-Date.now())/1000));
+      const remaining=Math.max(0,Math.round(s.finishes_at-Date.now()/1000));
       if(remaining<=0){
         d.textContent='✓ Fertig';d.classList.add('done');
         if(b)b.textContent='▶ Start';
         timerRunning=false;timerPaused=false;_stopTimerPoll();
         if(navigator.vibrate)navigator.vibrate([400,150,400,150,600]);
-      }else{
-        d.textContent=fmtTime(remaining);d.classList.remove('done');
-        if(b)b.textContent='⏸ Pause';
-        timerRunning=true;timerPaused=false;
-      }
+      }else{d.textContent=fmtTime(remaining);d.classList.remove('done');
+        if(b)b.textContent='⏸ Pause';timerRunning=true;timerPaused=false;}
     }else if(s.state==='paused'){
-      const rem=_durationToSecs(s.attributes.remaining||'00:00:00');
-      d.textContent=fmtTime(rem);d.classList.remove('done');
+      d.textContent=fmtTime(s.remaining_secs||0);d.classList.remove('done');
       if(b)b.textContent='▶ Weiter';
       timerRunning=false;timerPaused=true;
-    }else{
-      timerRunning=false;timerPaused=false;
-    }
+    }else{timerRunning=false;timerPaused=false;}
   }catch(e){}
 }
 
