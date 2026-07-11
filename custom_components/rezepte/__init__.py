@@ -128,49 +128,79 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _ensure_helpers(hass: HomeAssistant) -> None:
     """Timer- und Schritt-Helfer automatisch anlegen falls nicht vorhanden."""
-    from homeassistant.components.timer import DOMAIN as TIMER_DOMAIN
-    from homeassistant.components.input_number import DOMAIN as INPUT_NUMBER_DOMAIN
+    from homeassistant import config_entries as ce
+    from homeassistant.data_entry_flow import FlowResultType
 
     registry = er.async_get(hass)
 
-    # ── Timer ──────────────────────────────────────────────────────────────
-    if not registry.async_get(TIMER_ENTITY):
-        try:
-            coll = hass.data.get(TIMER_DOMAIN)
-            if coll and hasattr(coll, "async_create_item"):
-                await coll.async_create_item({
-                    "name":     "Rezepte Kochtimer",
-                    "icon":     "mdi:chef-hat",
-                    "duration": "00:05:00",
-                    "restore":  True,
-                })
-                _LOGGER.info("Timer-Helfer '%s' angelegt", TIMER_ENTITY)
-            else:
-                _LOGGER.warning(
-                    "Timer-Helfer konnte nicht automatisch angelegt werden. "
-                    "Bitte '%s' manuell unter Einstellungen → Helfer anlegen.",
-                    TIMER_ENTITY,
-                )
-        except Exception as err:
-            _LOGGER.warning("Fehler beim Anlegen des Timer-Helfers: %s", err)
+    await _create_helper_via_flow(
+        hass, "timer", TIMER_ENTITY,
+        {
+            "name":     "Rezepte Kochtimer",
+            "icon":     "mdi:chef-hat",
+            "duration": "00:05:00",
+            "restore":  True,
+        },
+    )
+    await _create_helper_via_flow(
+        hass, "input_number", STEP_ENTITY,
+        {
+            "name":               "Rezepte Timer Schritt",
+            "icon":               "mdi:counter",
+            "min":                1.0,
+            "max":                99.0,
+            "step":               1.0,
+            "initial":            1.0,
+            "mode":               "box",
+            "unit_of_measurement": "",
+        },
+    )
 
-    # ── Schritt-Nummer ─────────────────────────────────────────────────────
-    if not registry.async_get(STEP_ENTITY):
-        try:
-            coll = hass.data.get(INPUT_NUMBER_DOMAIN)
-            if coll and hasattr(coll, "async_create_item"):
-                await coll.async_create_item({
-                    "name":    "Rezepte Timer Schritt",
-                    "icon":    "mdi:counter",
-                    "min":     1,
-                    "max":     99,
-                    "step":    1,
-                    "initial": 1,
-                    "mode":    "box",
-                })
-                _LOGGER.info("Schritt-Helfer '%s' angelegt", STEP_ENTITY)
-        except Exception as err:
-            _LOGGER.warning("Fehler beim Anlegen des Schritt-Helfers: %s", err)
+
+async def _create_helper_via_flow(
+    hass: HomeAssistant,
+    domain: str,
+    expected_entity_id: str,
+    user_input: dict,
+) -> None:
+    """Helfer über Config-Flow anlegen, falls entity_id noch nicht existiert."""
+    from homeassistant import config_entries as ce
+    from homeassistant.data_entry_flow import FlowResultType
+
+    registry = er.async_get(hass)
+    if registry.async_get(expected_entity_id):
+        return  # bereits vorhanden
+
+    # Doppelte Config-Entry prüfen (z. B. nach Reload)
+    existing = hass.config_entries.async_entries(domain)
+    if any(e.data.get("name") == user_input.get("name") for e in existing):
+        _LOGGER.debug("Helfer '%s' als Config Entry bereits vorhanden", expected_entity_id)
+        return
+
+    try:
+        result = await hass.config_entries.flow.async_init(
+            domain,
+            context={"source": ce.SOURCE_USER},
+        )
+        if result.get("type") == FlowResultType.FORM:
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                user_input=user_input,
+            )
+        if result.get("type") == FlowResultType.CREATE_ENTRY:
+            _LOGGER.info("Helfer '%s' angelegt", expected_entity_id)
+        else:
+            _LOGGER.warning(
+                "Helfer '%s' konnte nicht angelegt werden (result=%s). "
+                "Bitte manuell unter Einstellungen → Helfer anlegen.",
+                expected_entity_id, result.get("type"),
+            )
+    except Exception as err:
+        _LOGGER.warning(
+            "Fehler beim Anlegen von '%s': %s. "
+            "Bitte manuell unter Einstellungen → Helfer anlegen.",
+            expected_entity_id, err,
+        )
 
 
 async def _send_announcement(
