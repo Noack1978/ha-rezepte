@@ -1,40 +1,32 @@
 save_recipes:
-  name: Rezepte speichern
-  description: Speichert die Rezeptliste aus der Web-App.
   fields:
     encoded:
-      name: Kodierte Daten
-      description: Base64-kodierte JSON-Rezeptliste.
-      required: true
-      selector:
-        text:
+      description: Base64-kodierte Rezeptliste (JSON)
+      example: "eyJyZWNpcGVzIjpbXX0="
 
 announce_timer:
-  name: Timer-Ende ankündigen
-  description: Gibt eine Ansage auf konfigurierten Lautsprechern aus wenn ein Koch-Timer abläuft.
   fields:
     step_num:
-      name: Schrittnummer
-      description: Nummer des Kochschritts.
-      required: true
-      example: 3
-      selector:
-        number:
-          min: 1
-          max: 99
+      description: Schritt-Nummer für die Ansage
+      example: 2
     alexa_players:
-      name: Alexa-Geräte
-      description: Echo-Geräte für die Ansage via Alexa Announce.
-      required: false
-      selector:
-        entity:
-          domain: media_player
-          multiple: true
+      description: Alexa-Geräte (überschreibt Integration-Einstellung)
+      example: ["media_player.echo_kuche"]
     tts_players:
-      name: TTS-Geräte
-      description: Andere Lautsprecher für die Ansage via HA TTS.
-      required: false
-      selector:
-        entity:
-          domain: media_player
-          multiple: true
+      description: TTS-Geräte (überschreibt Integration-Einstellung)
+      example: ["media_player.wohnzimmer"]
+
+timer_start:
+  fields:
+    duration:
+      description: Timer-Dauer in Sekunden
+      example: 300
+    step_num:
+      description: Schritt-Nummer (für Ansage bei Timer-Ende)
+      example: 2
+
+timer_pause:
+
+timer_resume:
+
+timer_cancel:
