@@ -46,6 +46,15 @@ Geräte-Auswahl auch direkt im Kochmodus am Timer möglich (📢-Button).
 **Einstellungen ändern:**
 Integrationen → Rezepte → ⋮ → Neu konfigurieren
 
+### Zugriffstoken
+
+Das Panel läuft als iFrame und benötigt beim ersten Öffnen einen **Long-Lived Access Token**:
+
+1. HA → Profil (unten links) → **Langlebige Zugriffstoken** → Token erstellen
+2. Token beim ersten Öffnen des Panels eingeben → wird im Browser gespeichert
+
+> **Hinweis:** Das Token wird pro Browser/Gerät gespeichert. Außerhalb des Heimnetzwerks (z. B. über Nabu Casa) kann der Token-Flow Probleme bereiten – die App funktioniert zuverlässig im lokalen WLAN.
+
 ### Einkaufsliste
 
 Im Rezept auf 🛒 tippen → Zutaten per Checkbox auswählen → Einkaufsliste wählen → Hinzufügen.
