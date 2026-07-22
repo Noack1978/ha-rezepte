@@ -7,7 +7,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity import Entity
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DOMAIN, SIGNAL_TIMER_STATE
@@ -30,7 +30,7 @@ async def async_setup_entry(
     async_add_entities([RezepteTimerSensor(entry)])
 
 
-class RezepteTimerSensor(Entity):
+class RezepteTimerSensor(SensorEntity):
     """Zeigt den aktuellen Status des Rezepte-Kochtimers."""
 
     _attr_has_entity_name = True
