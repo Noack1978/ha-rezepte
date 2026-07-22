@@ -63,6 +63,13 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.5.0
+- 🆕 Neue Entity `sensor.rezepte_kochtimer` – zeigt den Timer-Status
+  (Inaktiv/Läuft/Pausiert) mit Attributen `step_num`, `remaining_seconds`
+  und `finishes_at`. Kann auf beliebigen Dashboards, in Automationen oder
+  Benachrichtigungen genutzt werden – unabhängig von der Rezepte-Karte
+  und dem Kochmodus.
+
 ### v1.4.1
 - 🐛 Bugfix: Timer stoppte bei Wiederherstellung des Kochmodus (z. B. nach
   App-Neustart) statt fortgesetzt zu werden. `renderCookStep()` rief
