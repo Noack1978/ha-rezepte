@@ -867,7 +867,6 @@ function renderCookStep(){
         <button class="btn-cook-nav next" onclick="nextStep()">${cookStep===tot-1?'Fertig 🎉':'Weiter →'}</button>
       </div>
     </div>`;
-  stopTimer();
 }
 function nextStep(){stopTimer();cookStep++;renderCookStep();saveCookState();}
 function prevStep(){stopTimer();cookStep=Math.max(0,cookStep-1);renderCookStep();saveCookState();}
