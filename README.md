@@ -63,6 +63,16 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.6.0
+- 🥕 Zutatenliste im Kochmodus erscheint jetzt als feste Spalte rechts
+  neben der Schrittanzeige – klappt nicht mehr ungewollt ein beim Klick
+  auf Timer, Weiter oder Zurück (vorher: Overlay-Sidebar blockierte Klicks)
+- Auf schmalen Bildschirmen (< 700px) erscheint die Zutatenliste unterhalb
+  der Schrittanzeige statt daneben
+- 🔤 Neue Schriftgrößen-Einstellung im Kochmodus (80–160 %, über 🔤-Button
+  im Header). Einstellung wird geräteweise gespeichert und bleibt auch
+  beim nächsten Rezept erhalten
+
 ### v1.5.1
 - 🐛 Bugfix: `sensor.rezepte_kochtimer` zeigte immer „Unbekannt" statt
   des Timer-Status. Ursache: Die Sensor-Klasse erbte von der generischen
