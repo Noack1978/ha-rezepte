@@ -63,6 +63,24 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.4.1
+- 🐛 Bugfix: Timer stoppte bei Wiederherstellung des Kochmodus (z. B. nach
+  App-Neustart) statt fortgesetzt zu werden. `renderCookStep()` rief
+  intern immer `stopTimer()` auf – auch beim reinen Wiederherstellen.
+  Automatischer Abbruch entfernt; Timer werden weiterhin korrekt gestoppt,
+  wenn bewusst ein neuer Schritt gestartet wird (Start, Weiter, Zurück).
+
+### v1.4.0
+- ⏱️ Timer läuft jetzt server-seitig in Home Assistant (`async_call_later`)
+  – unabhängig vom Browser, übersteht Dashboard-Wechsel und App-Neustart
+- Neue interne Services: `rezepte.timer_start`, `rezepte.timer_pause`,
+  `rezepte.timer_resume`, `rezepte.timer_cancel`
+- Timer-Status wird in `timer_state.json` gespeichert und vom Frontend
+  gepollt (kein HA-Token für den Status nötig)
+- Ansage an Alexa/TTS wird automatisch von HA gesendet, sobald der Timer
+  abläuft – auch wenn kein Browser offen ist
+- Kochmodus-Wiederherstellung liest den Timer-Status direkt aus HA
+
 ### v1.3.3
 - Kochmodus wird nach HA-Seitenneuladen automatisch wiederhergestellt
   (letzter Schritt, Timer-Stand inkl. verstrichener Zeit)
