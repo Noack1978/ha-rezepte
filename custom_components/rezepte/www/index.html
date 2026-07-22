@@ -73,7 +73,8 @@
     .cook-prog-txt{font-size:.77rem;opacity:.5;flex-shrink:0}
     .cook-prog-bar{height:3px;background:rgba(255,255,255,.08);flex-shrink:0}
     .cook-prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),#e87d3e);transition:width .4s ease}
-    .cook-main{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 18px;overflow-y:auto}
+    .cook-body{flex:1;display:flex;min-height:0;overflow:hidden}
+    .cook-main{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:26px 18px;overflow-y:auto}
     .cook-content{width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px}
     .cook-step-label{font-size:.72rem;font-weight:600;letter-spacing:.18em;opacity:.45;text-transform:uppercase}
     .cook-step-text{font-family:'Playfair Display',serif;font-size:clamp(1.1rem,2.4vw,1.6rem);line-height:1.55;opacity:.95}
@@ -96,17 +97,23 @@
     .done-icon{font-size:3.8rem;display:block;margin-bottom:16px;animation:pop .4s ease}
     .cook-done h2{font-family:'Playfair Display',serif;font-size:1.9rem;margin-bottom:8px}
     .cook-done p{opacity:.55;margin-bottom:26px}
-    .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:190;display:none}
-    .sidebar-overlay.open{display:block}
-    .cook-sidebar{position:fixed;right:0;top:0;bottom:0;width:265px;background:rgba(26,15,10,.97);backdrop-filter:blur(14px);border-left:1px solid rgba(255,255,255,.08);padding:20px 15px;overflow-y:auto;transform:translateX(100%);transition:transform .26s ease;z-index:200}
-    .cook-sidebar.open{transform:translateX(0)}
+    .cook-sidebar{position:static;flex-shrink:0;width:250px;background:rgba(255,255,255,.03);border-left:1px solid rgba(255,255,255,.08);padding:20px 15px;overflow-y:auto}
     .cook-sidebar h3{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:13px;color:#ffd080}
     .sidebar-ing{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:.79rem}
     .sidebar-ing:last-child{border-bottom:none}
     .sidebar-amt{color:#ffd080;font-weight:600;min-width:48px;flex-shrink:0;font-variant-numeric:tabular-nums}
-    .sidebar-close{display:block;margin-top:16px;width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:8px;font-family:'Source Sans 3',sans-serif;font-size:.82rem;cursor:pointer}
+    @media (max-width:700px){
+      .cook-body{flex-direction:column;overflow-y:auto}
+      .cook-sidebar{width:100%;border-left:none;border-top:1px solid rgba(255,255,255,.08)}
+      .cook-main{overflow-y:visible}
+    }
     .btn-sidebar{background:var(--accent2);border:1px solid var(--accent);color:#fff;border-radius:8px;padding:7px 14px;font-size:.82rem;font-family:'Source Sans 3',sans-serif;cursor:pointer;flex-shrink:0;font-weight:600}
     .btn-sidebar:hover{background:rgba(255,255,255,.14)}
+    .font-panel{position:absolute;top:52px;right:17px;background:rgba(26,15,10,.98);border:1px solid rgba(255,255,255,.14);border-radius:var(--r-sm);padding:14px 16px;z-index:260;display:none;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    .font-panel.open{display:block}
+    .font-panel label{font-size:.75rem;opacity:.6;display:block;margin-bottom:8px}
+    .font-panel input[type=range]{width:100%}
+    .font-panel-row{display:flex;justify-content:space-between;align-items:center}
     .form-modal{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
     .form-modal.open{transform:translateY(0)}
     .form-header{background:var(--card);border-bottom:1px solid var(--border);padding:13px 17px;display:flex;align-items:center;gap:11px;flex-shrink:0}
@@ -330,19 +337,25 @@
 
 <!-- ═══ COOK ═══ -->
 <div id="cook-view" class="view">
-  <div class="cook-header">
+  <div class="cook-header" style="position:relative">
     <button class="btn-cook-back" onclick="exitCook()">← Beenden</button>
     <h1 id="cook-title"></h1>
     <span class="cook-prog-txt" id="cook-prog-txt"></span>
-    <button class="btn-sidebar" onclick="toggleSidebar()">🥕 Zutaten</button>
+    <button class="btn-sidebar" onclick="toggleFontPanel()">🔤 <span id="font-scale-disp">100%</span></button>
+    <div class="font-panel" id="font-panel">
+      <label>Schriftgröße Kochmodus</label>
+      <div class="font-panel-row">
+        <input type="range" min="0.8" max="1.6" step="0.1" id="font-range" oninput="setCookFontScale(this.value)">
+      </div>
+    </div>
   </div>
   <div class="cook-prog-bar"><div class="cook-prog-fill" id="cook-prog-fill" style="width:0%"></div></div>
-  <div class="cook-main" id="cook-main"></div>
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
-  <div class="cook-sidebar" id="cook-sidebar">
-    <h3>Zutaten <span style="font-size:.72rem;opacity:.55;font-family:'Source Sans 3',sans-serif;font-weight:400">(skaliert)</span></h3>
-    <div id="sidebar-ings"></div>
-    <button class="sidebar-close" onclick="toggleSidebar()">✕ Schließen</button>
+  <div class="cook-body" id="cook-body">
+    <div class="cook-main" id="cook-main"></div>
+    <div class="cook-sidebar" id="cook-sidebar">
+      <h3>Zutaten <span style="font-size:.72rem;opacity:.55;font-family:'Source Sans 3',sans-serif;font-weight:400">(skaliert)</span></h3>
+      <div id="sidebar-ings"></div>
+    </div>
   </div>
 </div>
 
@@ -506,6 +519,7 @@ const esc = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 
 /* ══ INIT ══ */
 async function init() {
+  applyCookFontScale();
   try {
     // Geraete-Konfiguration laden
   try{
@@ -823,11 +837,7 @@ function startCook() {
   document.getElementById('sidebar-ings').innerHTML=
     curRecipe.ingredients.map(g=>`<div class="sidebar-ing"><span class="sidebar-amt">${scale(g.amount)} ${esc(g.unit)}</span><span>${esc(g.name)}</span></div>`).join('');
   renderCookStep(); showView('cook'); saveCookState(); enableCookGuard();
-  // Zutatensidebar automatisch öffnen (zeigt skalierte Mengen)
-  setTimeout(()=>{
-    document.getElementById('cook-sidebar').classList.add('open');
-    document.getElementById('sidebar-overlay').classList.add('open');
-  }, 300);
+  applyCookFontScale();
 }
 function exitCook(){stopTimer();clearCookState();disableCookGuard();showView('detail');}
 function renderCookStep(){
@@ -959,10 +969,7 @@ function restoreCookState(){
         }
       }catch(e){}
     },200);
-    setTimeout(()=>{
-      document.getElementById('cook-sidebar').classList.add('open');
-      document.getElementById('sidebar-overlay').classList.add('open');
-    },300);
+    applyCookFontScale();
     showToast('🍳 Kochmodus wiederhergestellt','ok');
     return true;
   }catch(e){clearCookState();return false;}
@@ -1061,7 +1068,26 @@ async function _updateTimerDisplay(){
 }
 
 /* ══ SIDEBAR ══ */
-function toggleSidebar(){document.getElementById('cook-sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open');}
+let cookFontScale=parseFloat(localStorage.getItem('_cookFontScale')||'1');
+function toggleFontPanel(){
+  const p=document.getElementById('font-panel');
+  const r=document.getElementById('font-range');
+  if(r)r.value=cookFontScale;
+  p.classList.toggle('open');
+}
+function setCookFontScale(v){
+  cookFontScale=parseFloat(v);
+  localStorage.setItem('_cookFontScale',cookFontScale);
+  applyCookFontScale();
+}
+function applyCookFontScale(){
+  const el=document.getElementById('cook-view');
+  if(el)el.style.zoom=cookFontScale;
+  const disp=document.getElementById('font-scale-disp');
+  if(disp)disp.textContent=Math.round(cookFontScale*100)+'%';
+  const r=document.getElementById('font-range');
+  if(r)r.value=cookFontScale;
+}
 
 /* ══ FORM OPEN/CLOSE ══ */
 const EMOJIS=['🍳','🥘','🫕','🍲','🥗','🍜','🍝','🍛','🍣','🍱','🫙','🥫','🥚','🧀','🥩','🥦','🥕','🍅','🧄','🧅','🍰','🎂','🥧','🍕','🥨','🧆','🥙','🫔','🥪','🍔','🌮','🫚','🫛','🧂','🍷','☕','🫖','🧋','🍵','🫑'];
