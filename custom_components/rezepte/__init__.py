@@ -12,13 +12,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN           = "rezepte"
-RECIPES_FILE     = "recipes.json"
-HA_CONFIG_FILE   = "ha_config.json"
-TIMER_STATE_FILE = "timer_state.json"
+DOMAIN            = "rezepte"
+RECIPES_FILE      = "recipes.json"
+HA_CONFIG_FILE    = "ha_config.json"
+TIMER_STATE_FILE  = "timer_state.json"
+SIGNAL_TIMER_STATE = f"{DOMAIN}_timer_state_update"
+PLATFORMS         = ["sensor"]
 
 try:
     _VERSION = json.loads(
@@ -86,16 +89,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:  # noqa: BLE001
         pass
 
+    # 5. Sensor-Plattform weiterleiten (sensor.rezepte_kochtimer)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
     # ── Timer-Helfer (intern, kein HA-Helfer nötig) ────────────────────────
 
     def _write_timer_state(state: str, finishes_at: float = 0, remaining: int = 0, step: int = 1) -> None:
-        path = Path(hass.config.path("www", DOMAIN, TIMER_STATE_FILE))
-        _write_json(path, {
-            "state":         state,
-            "finishes_at":   finishes_at,
+        payload = {
+            "state":          state,
+            "finishes_at":    finishes_at,
             "remaining_secs": remaining,
-            "step_num":      step,
-        })
+            "step_num":       step,
+        }
+        path = Path(hass.config.path("www", DOMAIN, TIMER_STATE_FILE))
+        _write_json(path, payload)
+        hass.loop.call_soon_threadsafe(
+            async_dispatcher_send, hass, SIGNAL_TIMER_STATE, payload
+        )
 
     async def handle_timer_start(call: ServiceCall) -> None:
         global _timer_handle, _timer_finishes_at, _timer_step_num
@@ -112,7 +122,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _timer_finishes_at = time.time() + duration_secs
 
         await hass.async_add_executor_job(
-            _write_timer_state, "active", _timer_finishes_at, 0, step_num
+            _write_timer_state, "active", _timer_finishes_at, duration_secs, step_num
         )
 
         @callback
@@ -150,7 +160,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _timer_finishes_at = time.time() + _timer_remaining_sec
 
         await hass.async_add_executor_job(
-            _write_timer_state, "active", _timer_finishes_at, 0, _timer_step_num
+            _write_timer_state, "active", _timer_finishes_at, _timer_remaining_sec, _timer_step_num
         )
 
         @callback
@@ -177,7 +187,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _write_timer_state, "idle", 0, 0, _timer_step_num
         )
 
-    # 5. Services
+    # 6. Services
     async def handle_save_recipes(call: ServiceCall) -> None:
         encoded = call.data.get("encoded", "")
         missing = len(encoded) % 4
@@ -213,9 +223,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if _timer_handle:
         _timer_handle()
         _timer_handle = None
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     for svc in ("save_recipes", "announce_timer", "timer_start", "timer_pause", "timer_resume", "timer_cancel"):
         hass.services.async_remove(DOMAIN, svc)
-    return True
+    return unloaded
 
 
 async def _send_announcement(
