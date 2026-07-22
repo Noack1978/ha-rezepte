@@ -63,6 +63,12 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.6.1
+- 🆕 Neue Entity `sensor.rezepte_kochtimer_restlaufzeit` – zeigt die
+  verbleibende Zeit in Sekunden, zählt live jede Sekunde herunter
+  solange der Timer läuft. Geräteklasse „Dauer", nutzbar in Karten mit
+  automatischer Zeitformatierung (z. B. Entities-Karte, Gauge, Bar-Karte).
+
 ### v1.6.0
 - 🥕 Zutatenliste im Kochmodus erscheint jetzt als feste Spalte rechts
   neben der Schrittanzeige – klappt nicht mehr ungewollt ein beim Klick
