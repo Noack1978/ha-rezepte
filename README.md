@@ -63,6 +63,12 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.5.1
+- 🐛 Bugfix: `sensor.rezepte_kochtimer` zeigte immer „Unbekannt" statt
+  des Timer-Status. Ursache: Die Sensor-Klasse erbte von der generischen
+  `Entity` statt von `SensorEntity` – nur Letztere übernimmt `native_value`
+  automatisch als angezeigten Zustand.
+
 ### v1.5.0
 - 🆕 Neue Entity `sensor.rezepte_kochtimer` – zeigt den Timer-Status
   (Inaktiv/Läuft/Pausiert) mit Attributen `step_num`, `remaining_seconds`
