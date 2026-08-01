@@ -44,6 +44,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     alexa_players = entry.data.get("alexa_players", [])
     tts_players   = entry.data.get("tts_players", [])
     tts_engine    = entry.data.get("tts_engine", "tts.google_translate_de_de")
+    airfryer_temp_entity  = entry.data.get("airfryer_temp_entity", "")
+    airfryer_time_entity  = entry.data.get("airfryer_time_entity", "")
+    airfryer_start_entity = entry.data.get("airfryer_start_entity", "")
 
     # Rückwärtskompatibilität v1.2.0–v1.2.2
     if not alexa_players and not tts_players:
@@ -65,7 +68,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _write_json, cfg_path,
         {"media_players": all_players,
          "alexa_players": alexa_players,
-         "tts_players":   tts_players},
+         "tts_players":   tts_players,
+         "airfryer_temp_entity":  airfryer_temp_entity,
+         "airfryer_time_entity":  airfryer_time_entity,
+         "airfryer_start_entity": airfryer_start_entity},
     )
 
     # 3. timer_state.json initialisieren (nur falls nicht vorhanden)

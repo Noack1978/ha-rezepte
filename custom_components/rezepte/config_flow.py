@@ -30,6 +30,24 @@ def _schema(defaults: dict) -> vol.Schema:
         ): selector.EntitySelector(
             selector.EntitySelectorConfig(domain="tts")
         ),
+        vol.Optional(
+            "airfryer_temp_entity",
+            default=defaults.get("airfryer_temp_entity", ""),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="number")
+        ),
+        vol.Optional(
+            "airfryer_time_entity",
+            default=defaults.get("airfryer_time_entity", ""),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="number")
+        ),
+        vol.Optional(
+            "airfryer_start_entity",
+            default=defaults.get("airfryer_start_entity", ""),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="button")
+        ),
     })
 
 
