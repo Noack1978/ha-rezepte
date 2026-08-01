@@ -63,6 +63,18 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.7.0
+- 🍳 Airfryer-Einstellungen pro Rezeptschritt: Temperatur (°C) und Zeit
+  (Min) lassen sich im Schritt-Formular hinterlegen
+- Im Kochmodus erscheint bei entsprechenden Schritten ein Airfryer-Block
+  mit **„Werte senden"** (überträgt Temperatur/Zeit an die konfigurierten
+  Entities) und optional **„Starten"** als bewusst getrennter zweiter
+  Schritt – kein automatischer Start beim Werte-Senden
+- Neue Konfigurationsfelder in der Integration (Einstellungen → Geräte
+  & Dienste → Rezepte → Konfigurieren): Airfryer Temperatur-Entity
+  (`number.*`), Airfryer Zeit-Entity (`number.*`), Airfryer Start-Button
+  (`button.*`) – alle optional
+
 ### v1.6.1
 - 🆕 Neue Entity `sensor.rezepte_kochtimer_restlaufzeit` – zeigt die
   verbleibende Zeit in Sekunden, zählt live jede Sekunde herunter
