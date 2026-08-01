@@ -82,6 +82,9 @@
     .cook-timer-label{font-size:.69rem;opacity:.45;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
     .cook-timer-display{font-size:2.9rem;font-weight:300;letter-spacing:.05em;font-variant-numeric:tabular-nums;color:#ffd080;line-height:1;margin-bottom:12px}
     .cook-timer-display.done{color:#7ddb8a}
+    .cook-airfryer{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:var(--r);padding:17px 24px;min-width:220px;display:flex;flex-direction:column;align-items:center;gap:10px}
+    .cook-airfryer-vals{display:flex;gap:14px;font-size:1.3rem;font-weight:600;color:#ffd080;font-variant-numeric:tabular-nums}
+    .cook-airfryer-status{font-size:.76rem;opacity:.6;min-height:1em}
     .cook-timer-controls{display:flex;gap:8px;justify-content:center}
     .btn-timer{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:6px 16px;font-size:.82rem;font-family:'Source Sans 3',sans-serif;cursor:pointer;transition:background .15s}
     .btn-timer:hover{background:rgba(255,255,255,.16)}
@@ -527,6 +530,9 @@ async function init() {
     if(cfgR.ok){const cfg=await cfgR.json();
       _allMediaPlayers=cfg.media_players||[];
       _announceDevices=[..._allMediaPlayers];
+      AIRFRYER_TEMP_ENTITY=cfg.airfryer_temp_entity||'';
+      AIRFRYER_TIME_ENTITY=cfg.airfryer_time_entity||'';
+      AIRFRYER_START_ENTITY=cfg.airfryer_start_entity||'';
 }
   }catch(e){}
   const r=await fetch('/local/rezepte/recipes.json?_='+Date.now());
@@ -868,10 +874,23 @@ function renderCookStep(){
         <button class="btn-timer" onclick="resetTimer(${s.timerSec})">↺ Reset</button>
       </div>
     </div>`:'';
+  const af=(s.airfryerTemp||s.airfryerTime)?`
+    <div class="cook-airfryer">
+      <div class="cook-timer-label">🍳 Airfryer</div>
+      <div class="cook-airfryer-vals">
+        ${s.airfryerTemp?`<span>${s.airfryerTemp}°C</span>`:''}
+        ${s.airfryerTime?`<span>${s.airfryerTime} Min</span>`:''}
+      </div>
+      <div class="cook-timer-controls">
+        <button class="btn-timer primary" onclick="sendAirfryerSettings(${s.airfryerTemp||0},${s.airfryerTime||0})" id="af-send-btn">📤 Werte senden</button>
+        ${AIRFRYER_START_ENTITY?`<button class="btn-timer" onclick="startAirfryer()">▶ Starten</button>`:''}
+      </div>
+      <div class="cook-airfryer-status" id="af-send-status"></div>
+    </div>`:'';
   document.getElementById('cook-main').innerHTML=`
     <div class="cook-content fade-in">
       <div class="cook-step-label">Schritt ${cookStep+1} von ${tot}</div>
-      <div class="cook-step-text">${esc(s.text)}</div>${th}
+      <div class="cook-step-text">${esc(s.text)}</div>${th}${af}
       <div class="cook-nav">
         <button class="btn-cook-nav" onclick="prevStep()" ${cookStep===0?'disabled':''}>← Zurück</button>
         <button class="btn-cook-nav next" onclick="nextStep()">${cookStep===tot-1?'Fertig 🎉':'Weiter →'}</button>
@@ -1069,6 +1088,46 @@ async function _updateTimerDisplay(){
 
 /* ══ SIDEBAR ══ */
 let cookFontScale=parseFloat(localStorage.getItem('_cookFontScale')||'1');
+let AIRFRYER_TEMP_ENTITY='', AIRFRYER_TIME_ENTITY='', AIRFRYER_START_ENTITY='';
+async function sendAirfryerSettings(temp,timeMin){
+  const btn=document.getElementById('af-send-btn'),st=document.getElementById('af-send-status');
+  if(!AIRFRYER_TEMP_ENTITY&&!AIRFRYER_TIME_ENTITY){
+    if(st)st.textContent='⚠ Kein Airfryer konfiguriert (Einstellungen → Rezepte)';
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent='📤 Sende…';}
+  if(st)st.textContent='';
+  try{
+    if(temp&&AIRFRYER_TEMP_ENTITY){
+      await fetch(`${HA_URL}/api/services/number/set_value`,{
+        method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({entity_id:AIRFRYER_TEMP_ENTITY,value:temp})
+      });
+    }
+    if(timeMin&&AIRFRYER_TIME_ENTITY){
+      await fetch(`${HA_URL}/api/services/number/set_value`,{
+        method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({entity_id:AIRFRYER_TIME_ENTITY,value:timeMin})
+      });
+    }
+    if(st)st.textContent='✓ Werte übertragen';
+    if(btn){btn.disabled=false;btn.textContent='📤 An Airfryer senden';}
+    showToast('🍳 Airfryer-Werte übertragen','ok');
+  }catch(e){
+    if(st)st.textContent='✗ Fehler bei der Übertragung';
+    if(btn){btn.disabled=false;btn.textContent='📤 An Airfryer senden';}
+  }
+}
+async function startAirfryer(){
+  if(!AIRFRYER_START_ENTITY)return;
+  try{
+    await fetch(`${HA_URL}/api/services/button/press`,{
+      method:'POST',headers:{'Authorization':'Bearer '+HA_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({entity_id:AIRFRYER_START_ENTITY})
+    });
+    showToast('🍳 Airfryer gestartet','ok');
+  }catch(e){showToast('Airfryer konnte nicht gestartet werden','err');}
+}
 function toggleFontPanel(){
   const p=document.getElementById('font-panel');
   const r=document.getElementById('font-range');
@@ -1114,7 +1173,7 @@ function openForm(id){
     document.getElementById('f-servings').value=4;
     document.getElementById('f-slabel').value='Portionen';
     fIngs=[{amount:'',unit:'g',name:''}];
-    fSteps=[{text:'',timerSec:0}];
+    fSteps=[{text:'',timerSec:0,airfryerTemp:0,airfryerTime:0}];
     fNotes=[''];
     document.getElementById('form-heading').textContent='Rezept hinzufügen';
   }
@@ -1174,13 +1233,23 @@ function renderStepsList(){
           <input type="number" class="inp m step-tm" value="${tm||''}" placeholder="0" min="0"> Min
           <input type="number" class="inp m step-ts" value="${ts||''}" placeholder="0" min="0" max="59"> Sek
         </div>
+        <div class="timer-row" style="margin-top:6px">
+          <span>🍳 Airfryer:</span>
+          <input type="number" class="inp m step-at" value="${s.airfryerTemp||''}" placeholder="°C" min="40" max="200" step="5" title="Temperatur °C"> °C
+          <input type="number" class="inp m step-atm" value="${s.airfryerTime||''}" placeholder="Min" min="1" max="60" title="Zeit in Minuten"> Min
+        </div>
       </div>
       <button class="btn-rm" onclick="rmStep(${i})">×</button>
     </div>`;}).join('');
 }
-function saveStepsDOM(){fSteps=[...document.querySelectorAll('#steps-list .dyn-row')].map(r=>({text:r.querySelector('.step-t')?.value.trim()||'',timerSec:(parseInt(r.querySelector('.step-tm')?.value)||0)*60+(parseInt(r.querySelector('.step-ts')?.value)||0)}));}
-function addStepRow(){saveStepsDOM();fSteps.push({text:'',timerSec:0});renderStepsList();const ts=document.querySelectorAll('.step-t');if(ts.length)ts[ts.length-1].focus();}
-function rmStep(i){saveStepsDOM();fSteps.splice(i,1);if(!fSteps.length)fSteps.push({text:'',timerSec:0});renderStepsList();}
+function saveStepsDOM(){fSteps=[...document.querySelectorAll('#steps-list .dyn-row')].map(r=>({
+  text:r.querySelector('.step-t')?.value.trim()||'',
+  timerSec:(parseInt(r.querySelector('.step-tm')?.value)||0)*60+(parseInt(r.querySelector('.step-ts')?.value)||0),
+  airfryerTemp:parseInt(r.querySelector('.step-at')?.value)||0,
+  airfryerTime:parseInt(r.querySelector('.step-atm')?.value)||0
+}));}
+function addStepRow(){saveStepsDOM();fSteps.push({text:'',timerSec:0,airfryerTemp:0,airfryerTime:0});renderStepsList();const ts=document.querySelectorAll('.step-t');if(ts.length)ts[ts.length-1].focus();}
+function rmStep(i){saveStepsDOM();fSteps.splice(i,1);if(!fSteps.length)fSteps.push({text:'',timerSec:0,airfryerTemp:0,airfryerTime:0});renderStepsList();}
 
 /* ══ FORM NOTES ══ */
 function renderNotesList(){document.getElementById('notes-list').innerHTML=fNotes.map((n,i)=>`<div class="dyn-row"><div class="dyn-body"><input type="text" class="inp f note-i" value="${esc(n||'')}" placeholder="Tipp oder Hinweis…"></div><button class="btn-rm" onclick="rmNote(${i})">×</button></div>`).join('');}
