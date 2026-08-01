@@ -7,12 +7,18 @@
         "data": {
           "alexa_players": "Alexa Echo Devices",
           "tts_players": "Other speakers (Sonos, TV, …)",
-          "tts_engine": "TTS Engine"
+          "tts_engine": "TTS Engine",
+          "airfryer_temp_entity": "Airfryer temperature entity",
+          "airfryer_time_entity": "Airfryer time entity",
+          "airfryer_start_entity": "Airfryer start button"
         },
         "data_description": {
           "alexa_players": "Echo devices that will be announced via Alexa Announce when a timer ends.",
           "tts_players": "Sonos, TV, or other speakers – use HA TTS.",
-          "tts_engine": "Only for 'Other speakers'. Default: tts.google_translate_de_de"
+          "tts_engine": "Only for 'Other speakers'. Default: tts.google_translate_de_de",
+          "airfryer_temp_entity": "number entity for temperature control (optional, for Airfryer recipe steps).",
+          "airfryer_time_entity": "number entity for time control in minutes (optional).",
+          "airfryer_start_entity": "button entity to start cooking (optional)."
         }
       },
       "reconfigure": {
@@ -20,12 +26,18 @@
         "data": {
           "alexa_players": "Alexa Echo Devices",
           "tts_players": "Other speakers (Sonos, TV, …)",
-          "tts_engine": "TTS Engine"
+          "tts_engine": "TTS Engine",
+          "airfryer_temp_entity": "Airfryer temperature entity",
+          "airfryer_time_entity": "Airfryer time entity",
+          "airfryer_start_entity": "Airfryer start button"
         },
         "data_description": {
           "alexa_players": "Echo devices that will be announced via Alexa Announce when a timer ends.",
           "tts_players": "Sonos, TV, or other speakers – use HA TTS.",
-          "tts_engine": "Only for 'Other speakers'. Default: tts.google_translate_de_de"
+          "tts_engine": "Only for 'Other speakers'. Default: tts.google_translate_de_de",
+          "airfryer_temp_entity": "number entity for temperature control (optional, for Airfryer recipe steps).",
+          "airfryer_time_entity": "number entity for time control in minutes (optional).",
+          "airfryer_start_entity": "button entity to start cooking (optional)."
         }
       }
     },
