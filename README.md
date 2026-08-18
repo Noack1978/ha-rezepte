@@ -15,6 +15,11 @@ Rezeptverwaltung als Home Assistant Panel – direkt in der Seitenleiste, optimi
 - 🛒 Zutaten direkt zur Einkaufsliste hinzufügen (Bring! & andere todo-Listen)
 - 📥 Rezept-Import via [ha-rezepte-import](https://github.com/Noack1978/ha-rezepte-import)
 
+## Screenshots
+<img width="1220" height="3433" alt="1000062036" src="https://github.com/user-attachments/assets/1fa1ec85-b351-44ab-980e-0348cbe68d99" />
+<img width="1220" height="2712" alt="1000062037" src="https://github.com/user-attachments/assets/06ef5c00-1871-47f1-8384-f807492b67ea" />
+
+
 ## Installation
 
 ### Via HACS
