@@ -74,6 +74,14 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.8.1
+- 🐛 Fehlermeldung des Token-Overlays (z. B. „Auto-Erkennung nicht
+  verfügbar") war durch den unscharfen Overlay-Hintergrund nicht sichtbar
+  – Toast liegt jetzt über dem Overlay (höherer z-index).
+- 🐛 „Abbrechen"-Button im Token-Overlay fehlte, wenn kein manueller Token
+  gesetzt war – er erscheint jetzt korrekt immer dann, wenn die
+  Auto-Erkennung funktioniert oder bereits Rezepte geladen wurden.
+
 ### v1.8.0
 - 🔓 Kein manueller Zugriffstoken mehr nötig: Das Panel erkennt automatisch
   die bestehende HA-Session über `localStorage['hassTokens']` (dasselbe,
@@ -86,9 +94,6 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 - Keine Architekturänderung (weiterhin iFrame-Panel) – der frühere
   Custom-Element-Versuch (ohne Token, aber mit Ladeproblemen) bleibt
   verworfen; diese Lösung erreicht dasselbe Ziel risikofrei.
-- 🐛 „Abbrechen"-Button im Token-Overlay fehlte, wenn kein manueller Token
-  gesetzt war – er erscheint jetzt korrekt immer dann, wenn die
-  Auto-Erkennung funktioniert oder bereits Rezepte geladen wurden.
 
 ### v1.7.0
 - 🍳 Airfryer-Einstellungen pro Rezeptschritt: Temperatur (°C) und Zeit

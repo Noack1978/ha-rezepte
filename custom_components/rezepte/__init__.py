@@ -6,8 +6,10 @@ import json
 import logging
 import shutil
 import time
+from datetime import timedelta
 from pathlib import Path
 
+from homeassistant.auth.const import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.components.frontend import async_register_built_in_panel
@@ -62,7 +64,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # 1. Web-Dateien bereitstellen
     await hass.async_add_executor_job(_provision_www, hass)
 
-    # 2. ha_config.json schreiben
+    # 2. Zugriffstoken sicherstellen (automatisch angelegt, auch nachtraeglich
+    #    fuer bereits bestehende Installationen ohne eigenes Zutun)
+    api_token = await _async_ensure_api_token(hass, entry)
+
+    # 3. ha_config.json schreiben
     cfg_path = Path(hass.config.path("www", DOMAIN, HA_CONFIG_FILE))
     await hass.async_add_executor_job(
         _write_json, cfg_path,
@@ -71,17 +77,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
          "tts_players":   tts_players,
          "airfryer_temp_entity":  airfryer_temp_entity,
          "airfryer_time_entity":  airfryer_time_entity,
-         "airfryer_start_entity": airfryer_start_entity},
+         "airfryer_start_entity": airfryer_start_entity,
+         "api_token": api_token},
     )
 
-    # 3. timer_state.json initialisieren (nur falls nicht vorhanden)
+    # 4. timer_state.json initialisieren (nur falls nicht vorhanden)
     ts_path = Path(hass.config.path("www", DOMAIN, TIMER_STATE_FILE))
     if not ts_path.exists():
         await hass.async_add_executor_job(
             _write_json, ts_path, {"state": "idle", "finishes_at": 0, "remaining_secs": 0, "step_num": 1}
         )
 
-    # 4. Panel registrieren
+    # 5. Panel registrieren
     try:
         async_register_built_in_panel(
             hass,
@@ -95,7 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:  # noqa: BLE001
         pass
 
-    # 5. Sensor-Plattform weiterleiten (sensor.rezepte_kochtimer)
+    # 6. Sensor-Plattform weiterleiten (sensor.rezepte_kochtimer)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # ── Timer-Helfer (intern, kein HA-Helfer nötig) ────────────────────────
@@ -193,7 +200,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _write_timer_state, "idle", 0, 0, _timer_step_num
         )
 
-    # 6. Services
+    # 7. Services
     async def handle_save_recipes(call: ServiceCall) -> None:
         encoded = call.data.get("encoded", "")
         missing = len(encoded) % 4
@@ -275,6 +282,43 @@ async def _send_announcement(
             )
         except Exception as err:
             _LOGGER.error("TTS-Ansage fehlgeschlagen: %s", err)
+
+
+async def _async_ensure_api_token(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    """Stellt sicher, dass ein Long-Lived Access Token fuer das Panel existiert.
+
+    Wird automatisch angelegt – sowohl bei der Ersteinrichtung als auch
+    nachtraeglich fuer bereits laenger bestehende Installationen, die den
+    Token noch nicht im Config Entry gespeichert haben. Das Panel braucht so
+    keine manuelle Token-Eingabe und ist unabhaengig von localStorage/
+    Companion-App-Eigenheiten.
+    """
+    token = entry.data.get("api_token")
+    if token:
+        return token
+
+    user = await hass.auth.async_get_owner()
+    if user is None:
+        _LOGGER.warning(
+            "Rezepte: Kein Owner-Benutzer gefunden – Zugriffstoken konnte "
+            "nicht automatisch angelegt werden. Bitte manuell in den "
+            "Panel-Einstellungen hinterlegen."
+        )
+        return ""
+
+    refresh_token = await hass.auth.async_create_refresh_token(
+        user,
+        client_name=f"Rezepte Panel ({entry.title})",
+        token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
+        access_token_expiration=timedelta(days=3650),
+    )
+    token = await hass.auth.async_create_access_token(refresh_token)
+
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, "api_token": token}
+    )
+    _LOGGER.info("Rezepte: Zugriffstoken automatisch angelegt (Benutzer: %s)", user.name)
+    return token
 
 
 def _provision_www(hass: HomeAssistant) -> None:

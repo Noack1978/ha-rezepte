@@ -510,14 +510,25 @@
 let HA_TOKEN = localStorage.getItem('ha_token') || '';
 const HA_URL = window.location.origin;
 
-/* ══ AUTO-TOKEN ══
+/* ══ SERVER-TOKEN ══
+   Die Integration legt beim Setup automatisch einen Long-Lived Access
+   Token an und liefert ihn ueber ha_config.json aus – das ist die primaere,
+   zuverlaessigste Quelle (funktioniert unabhaengig von Browser/Companion-App/
+   localStorage-Eigenheiten). Wird vor jeder Nutzung einmal geladen. */
+let SERVER_TOKEN = '';
+async function _loadServerToken(){
+  try{
+    const r = await fetch('/local/rezepte/ha_config.json?_='+Date.now());
+    if(r.ok){ const cfg = await r.json(); SERVER_TOKEN = cfg.api_token || ''; return cfg; }
+  }catch(e){}
+  return null;
+}
+
+/* ══ AUTO-TOKEN (Fallback) ══
    Das Panel laeuft als iFrame unter derselben Origin wie das HA-Frontend.
    HA speichert dort sein eigenes, automatisch erneuertes OAuth-Token unter
-   localStorage['hassTokens'] – wir lesen es bei jedem Aufruf frisch, damit
-   kein manuell erstellter Long-Lived Token mehr noetig ist (funktioniert
-   lokal und ueber Nabu Casa gleichermassen, da jede Origin ihre eigene
-   gueltige Session-Zuordnung hat). Ein manuell gesetzter HA_TOKEN (Fallback-
-   UI) hat weiterhin Vorrang, falls die Auto-Erkennung fehlschlaegt. */
+   localStorage['hassTokens'] – nur relevant, falls aus irgendeinem Grund
+   (alte Installation, fehlgeschlagene Migration) kein Server-Token vorliegt. */
 function _autoToken(){
   try{
     const raw=localStorage.getItem('hassTokens');
@@ -526,7 +537,8 @@ function _autoToken(){
     return t&&t.access_token?t.access_token:'';
   }catch(e){return'';}
 }
-function authToken(){ return HA_TOKEN || _autoToken(); }
+/* Prioritaet: manueller Override > Server-Token (empfohlen) > Auto-Erkennung */
+function authToken(){ return HA_TOKEN || SERVER_TOKEN || _autoToken(); }
 function hasUsableToken(){ return !!authToken(); }
 
 /* ══ STATE ══ */
@@ -1329,17 +1341,22 @@ function showToast(msg,type=''){
 }
 
 /* ══ INIT mit Token-Prüfung ══
-   Zuerst wird automatisch das HA-Session-Token geprueft (siehe authToken()
-   oben). Nur wenn das fehlschlaegt (z. B. Panel ausserhalb des HA-Frontends
-   geoeffnet) erscheint das manuelle Token-Setup als Fallback. */
-if (!hasUsableToken()) {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('token-cancel').style.display = 'none';
-    document.getElementById('token-overlay').style.display = 'flex';
-  });
-} else {
-  init();
-}
+   Zuerst wird der von der Integration automatisch angelegte Server-Token
+   geladen (siehe _loadServerToken oben). Erst wenn weder der, noch die
+   localStorage-Auto-Erkennung einen nutzbaren Token liefern (z. B. sehr
+   alte Installation ohne Neustart seit dem Update), erscheint das manuelle
+   Token-Setup als letzter Fallback. */
+(async function _boot(){
+  await _loadServerToken();
+  if (!hasUsableToken()) {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('token-cancel').style.display = (RECIPES.length?'':'none');
+      document.getElementById('token-overlay').style.display = 'flex';
+    });
+  } else {
+    init();
+  }
+})();
 </script>
 
 <script>
