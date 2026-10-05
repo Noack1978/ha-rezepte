@@ -53,18 +53,22 @@ Integrationen → Rezepte → ⋮ → Neu konfigurieren
 
 ### Zugriffstoken
 
-Seit v1.8.0 **nicht mehr nötig** – das Panel erkennt automatisch die
-bestehende HA-Anmeldung über `localStorage['hassTokens']` (dasselbe
-Token, das auch das HA-Frontend selbst nutzt und automatisch erneuert).
-Funktioniert sowohl lokal als auch über Nabu Casa, da jede Origin ihre
-eigene gültige Session mitbringt.
+Seit v1.8.0 **nicht mehr nötig** – die Integration legt beim Setup
+automatisch einen Long-Lived Access Token für den HA-Owner-Benutzer an
+und liefert ihn serverseitig an das Panel aus. Das funktioniert
+unabhängig von Browser, Companion-App oder Netzwerk (lokal und über
+Nabu Casa gleichermaßen) und wird auch für bereits bestehende
+Installationen automatisch nachgeholt (beim nächsten HA-Neustart).
 
-Falls die Auto-Erkennung ausnahmsweise nicht funktioniert (z. B. Panel
-außerhalb des HA-Frontend-Kontexts geöffnet), kann über das ⚙️-Symbol im
-Panel-Header weiterhin ein **Long-Lived Access Token** manuell hinterlegt
-werden (HA → Profil → Sicherheit → Langlebige Zugriffstoken). Ein
-manuell gesetzter Token hat Vorrang vor der Auto-Erkennung und lässt
-sich über „↺ Auto-Erkennung nutzen" wieder entfernen.
+Falls aus irgendeinem Grund kein Server-Token vorliegt, greift als
+nächstes die Auto-Erkennung über `localStorage['hassTokens']` (dasselbe
+Token, das auch das HA-Frontend selbst nutzt). Nur falls auch das
+ausnahmsweise nicht funktioniert (z. B. Panel außerhalb des
+HA-Frontend-Kontexts geöffnet), kann über das ⚙️-Symbol im Panel-Header
+weiterhin ein **Long-Lived Access Token** manuell hinterlegt werden (HA →
+Profil → Sicherheit → Langlebige Zugriffstoken). Ein manuell gesetzter
+Token hat Vorrang vor Server-Token und Auto-Erkennung und lässt sich über
+„↺ Auto-Erkennung nutzen" wieder entfernen.
 
 ### Einkaufsliste
 
@@ -74,23 +78,20 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
-### v1.8.1
-- 🐛 Fehlermeldung des Token-Overlays (z. B. „Auto-Erkennung nicht
-  verfügbar") war durch den unscharfen Overlay-Hintergrund nicht sichtbar
-  – Toast liegt jetzt über dem Overlay (höherer z-index).
-- 🐛 „Abbrechen"-Button im Token-Overlay fehlte, wenn kein manueller Token
-  gesetzt war – er erscheint jetzt korrekt immer dann, wenn die
-  Auto-Erkennung funktioniert oder bereits Rezepte geladen wurden.
-
 ### v1.8.0
-- 🔓 Kein manueller Zugriffstoken mehr nötig: Das Panel erkennt automatisch
-  die bestehende HA-Session über `localStorage['hassTokens']` (dasselbe,
-  sich selbst erneuernde Token wie das HA-Frontend). Funktioniert lokal
-  und über Nabu Casa gleichermaßen.
-- Token wird bei jedem API-Aufruf frisch gelesen statt einmalig zwischengespeichert
-  – kein Problem mehr mit abgelaufenen Tokens bei langen Kochsitzungen.
-- Manuelle Token-Eingabe (⚙️-Button) bleibt als Fallback erhalten, inkl.
-  neuem „↺ Auto-Erkennung nutzen"-Button zum Zurücksetzen.
+- 🔓 Kein manueller Zugriffstoken mehr nötig: Die Integration legt beim
+  Setup automatisch einen Long-Lived Access Token für den HA-Owner-Benutzer
+  an und liefert ihn serverseitig über `ha_config.json` an das Panel aus.
+  Funktioniert unabhängig von Browser, Companion-App oder Netzwerk
+  (lokal und über Nabu Casa gleichermaßen), da kein Auslesen von
+  `localStorage` mehr nötig ist.
+- Token wird automatisch auch für bereits bestehende Installationen
+  nachträglich angelegt (bei jedem HA-Neustart geprüft) – keine manuelle
+  Aktion beim Update nötig.
+- Fallback-Kette bleibt bestehen: manueller Override (⚙️-Button) →
+  Server-Token → `localStorage['hassTokens']`-Auto-Erkennung, falls aus
+  irgendeinem Grund kein Server-Token vorliegt. Inkl.
+  „↺ Auto-Erkennung nutzen"-Button zum Zurücksetzen.
 - Keine Architekturänderung (weiterhin iFrame-Panel) – der frühere
   Custom-Element-Versuch (ohne Token, aber mit Ladeproblemen) bleibt
   verworfen; diese Lösung erreicht dasselbe Ziel risikofrei.
