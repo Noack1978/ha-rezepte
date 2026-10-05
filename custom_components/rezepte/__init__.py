@@ -9,7 +9,7 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
-from homeassistant.auth.const import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
+from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.components.frontend import async_register_built_in_panel
