@@ -167,7 +167,7 @@
     .btn-fp{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 20px;font-size:.9rem;font-weight:600;font-family:'Source Sans 3',sans-serif;cursor:pointer;flex:1;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:6px}
     .btn-fp:hover{background:var(--accent2)}
     .btn-fp:disabled{opacity:.5;pointer-events:none}
-    .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(70px);background:#2c1810;color:#fff;padding:10px 18px;border-radius:var(--r-sm);font-size:.86rem;z-index:500;transition:transform .28s ease,opacity .28s ease;opacity:0;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg)}
+    .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(70px);background:#2c1810;color:#fff;padding:10px 18px;border-radius:var(--r-sm);font-size:.86rem;z-index:700;transition:transform .28s ease,opacity .28s ease;opacity:0;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg)}
     .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
     .toast.ok{background:#2d5a3d}
     .toast.err{background:#7a1f1f}
@@ -1534,7 +1534,7 @@ function impEdit(){
 <script>
 function openTokenSetup(){
   document.getElementById('token-input').value=HA_TOKEN;
-  document.getElementById('token-cancel').style.display=HA_TOKEN?'':'none';
+  document.getElementById('token-cancel').style.display=(hasUsableToken()||RECIPES.length)?'':'none';
   document.getElementById('token-overlay').style.display='flex';
 }
 function closeTokenSetup(){document.getElementById('token-overlay').style.display='none';}
