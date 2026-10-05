@@ -312,7 +312,7 @@ async def _async_ensure_api_token(hass: HomeAssistant, entry: ConfigEntry) -> st
         token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
         access_token_expiration=timedelta(days=3650),
     )
-    token = await hass.auth.async_create_access_token(refresh_token)
+    token = hass.auth.async_create_access_token(refresh_token)
 
     hass.config_entries.async_update_entry(
         entry, data={**entry.data, "api_token": token}
