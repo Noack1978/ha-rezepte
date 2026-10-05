@@ -70,6 +70,14 @@ Profil → Sicherheit → Langlebige Zugriffstoken). Ein manuell gesetzter
 Token hat Vorrang vor Server-Token und Auto-Erkennung und lässt sich über
 „↺ Auto-Erkennung nutzen" wieder entfernen.
 
+> ⚠️ **Hinweis für Umsteiger ab v1.8.0:** Wer vorher bereits einen
+> manuellen Token hinterlegt hatte, sollte diesen einmalig über
+> „↺ Auto-Erkennung nutzen" zurücksetzen. Der manuelle Token hat weiterhin
+> Vorrang – wurde er in HA zwischenzeitlich widerrufen oder ist abgelaufen,
+> schlägt der Zugriff fehl, obwohl der automatische Server-Token
+> eigentlich funktionieren würde. Der Reset ist nur einmal pro Gerät/
+> Browser nötig.
+
 ### Einkaufsliste
 
 Im Rezept auf 🛒 tippen → Zutaten per Checkbox auswählen → Einkaufsliste wählen → Hinzufügen.
@@ -95,6 +103,12 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 - Keine Architekturänderung (weiterhin iFrame-Panel) – der frühere
   Custom-Element-Versuch (ohne Token, aber mit Ladeproblemen) bleibt
   verworfen; diese Lösung erreicht dasselbe Ziel risikofrei.
+- 🐛 Fehlermeldung des Token-Overlays (z. B. „Auto-Erkennung nicht
+  verfügbar") war durch den unscharfen Overlay-Hintergrund nicht sichtbar
+  – Toast liegt jetzt über dem Overlay (höherer z-index).
+- 🐛 „Abbrechen"-Button im Token-Overlay fehlte, wenn kein manueller Token
+  gesetzt war – er erscheint jetzt korrekt immer dann, wenn Server-Token
+  oder Auto-Erkennung funktionieren oder bereits Rezepte geladen wurden.
 
 ### v1.7.0
 - 🍳 Airfryer-Einstellungen pro Rezeptschritt: Temperatur (°C) und Zeit
