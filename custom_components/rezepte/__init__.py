@@ -306,12 +306,30 @@ async def _async_ensure_api_token(hass: HomeAssistant, entry: ConfigEntry) -> st
         )
         return ""
 
-    refresh_token = await hass.auth.async_create_refresh_token(
-        user,
-        client_name=f"Rezepte Panel ({entry.title})",
-        token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
-        access_token_expiration=timedelta(days=3650),
-    )
+    client_name = f"Rezepte Panel ({entry.title})"
+    try:
+        refresh_token = await hass.auth.async_create_refresh_token(
+            user,
+            client_name=client_name,
+            token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
+            access_token_expiration=timedelta(days=3650),
+        )
+    except ValueError:
+        # Bereits vorhanden (z. B. durch einen vorherigen, abgebrochenen
+        # Setup-Versuch) – bestehenden Refresh-Token weiterverwenden statt
+        # erneut anzulegen.
+        refresh_token = next(
+            (rt for rt in user.refresh_tokens.values() if rt.client_name == client_name),
+            None,
+        )
+        if refresh_token is None:
+            _LOGGER.warning(
+                "Rezepte: Zugriffstoken-Client existiert laut HA bereits, "
+                "konnte aber nicht wiedergefunden werden. Bitte Token manuell "
+                "in den Panel-Einstellungen hinterlegen."
+            )
+            return ""
+
     token = hass.auth.async_create_access_token(refresh_token)
 
     hass.config_entries.async_update_entry(
