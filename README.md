@@ -53,12 +53,18 @@ Integrationen → Rezepte → ⋮ → Neu konfigurieren
 
 ### Zugriffstoken
 
-Das Panel läuft als iFrame und benötigt beim ersten Öffnen einen **Long-Lived Access Token**:
+Seit v1.8.0 **nicht mehr nötig** – das Panel erkennt automatisch die
+bestehende HA-Anmeldung über `localStorage['hassTokens']` (dasselbe
+Token, das auch das HA-Frontend selbst nutzt und automatisch erneuert).
+Funktioniert sowohl lokal als auch über Nabu Casa, da jede Origin ihre
+eigene gültige Session mitbringt.
 
-1. HA → Profil (unten links) → **Langlebige Zugriffstoken** → Token erstellen
-2. Token beim ersten Öffnen des Panels eingeben → wird im Browser gespeichert
-
-> **Hinweis:** Das Token wird pro Browser/Gerät gespeichert. Außerhalb des Heimnetzwerks (z. B. über Nabu Casa) kann der Token-Flow Probleme bereiten – die App funktioniert zuverlässig im lokalen WLAN.
+Falls die Auto-Erkennung ausnahmsweise nicht funktioniert (z. B. Panel
+außerhalb des HA-Frontend-Kontexts geöffnet), kann über das ⚙️-Symbol im
+Panel-Header weiterhin ein **Long-Lived Access Token** manuell hinterlegt
+werden (HA → Profil → Sicherheit → Langlebige Zugriffstoken). Ein
+manuell gesetzter Token hat Vorrang vor der Auto-Erkennung und lässt
+sich über „↺ Auto-Erkennung nutzen" wieder entfernen.
 
 ### Einkaufsliste
 
@@ -67,6 +73,19 @@ Im Rezept auf 🛒 tippen → Zutaten per Checkbox auswählen → Einkaufsliste 
 Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel mit Bring! und allen anderen `todo`-Entities in Home Assistant.
 
 ## Changelog
+
+### v1.8.0
+- 🔓 Kein manueller Zugriffstoken mehr nötig: Das Panel erkennt automatisch
+  die bestehende HA-Session über `localStorage['hassTokens']` (dasselbe,
+  sich selbst erneuernde Token wie das HA-Frontend). Funktioniert lokal
+  und über Nabu Casa gleichermaßen.
+- Token wird bei jedem API-Aufruf frisch gelesen statt einmalig zwischengespeichert
+  – kein Problem mehr mit abgelaufenen Tokens bei langen Kochsitzungen.
+- Manuelle Token-Eingabe (⚙️-Button) bleibt als Fallback erhalten, inkl.
+  neuem „↺ Auto-Erkennung nutzen"-Button zum Zurücksetzen.
+- Keine Architekturänderung (weiterhin iFrame-Panel) – der frühere
+  Custom-Element-Versuch (ohne Token, aber mit Ladeproblemen) bleibt
+  verworfen; diese Lösung erreicht dasselbe Ziel risikofrei.
 
 ### v1.7.0
 - 🍳 Airfryer-Einstellungen pro Rezeptschritt: Temperatur (°C) und Zeit
