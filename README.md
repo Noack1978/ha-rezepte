@@ -86,6 +86,14 @@ Mengen werden automatisch an den aktuellen Portionsscaler angepasst. Kompatibel 
 
 ## Changelog
 
+### v1.8.1
+- 🐛 Bugfix: Die Airfryer-Felder (Temperatur-, Zeit-Entity, Start-Button)
+  in der Konfiguration waren faktisch Pflichtfelder – ohne Auswahl ließ sich
+  das Formular nicht speichern. Ursache: leerer String als Standardwert eines
+  Entity-Selectors. Die Felder sind jetzt wirklich optional und können beim
+  Neukonfigurieren auch wieder geleert werden.
+- Beim Neukonfigurieren bleibt der automatisch angelegte Zugriffstoken erhalten.
+
 ### v1.8.0
 - 🔓 Kein manueller Zugriffstoken mehr nötig: Die Integration legt beim
   Setup automatisch einen Long-Lived Access Token für den HA-Owner-Benutzer
